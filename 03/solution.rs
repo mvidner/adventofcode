@@ -28,6 +28,11 @@ fn new_position(p: Position, i: char) -> Position {
 fn main () {
     let instructions = read_instructions();
 
+    one_santa(&instructions);
+    two_santas(&instructions);
+}
+
+fn one_santa(instructions: &str) {
     let mut visited = PositionSet::new();
     let mut position = (0, 0);
     visited.insert(position);
@@ -36,5 +41,27 @@ fn main () {
         position = new_position(position, instruction);
         visited.insert(position);
     }
-    println!("Positions visited: {}", visited.len());
+    println!("Positions visited by a single Santa: {}", visited.len());
+}
+
+fn two_santas(instructions: &str) {
+    let mut visited = PositionSet::new();
+    let mut position = (0, 0);
+    let mut robosanta_position = (0, 0);
+    visited.insert(position);
+
+    let mut santas_turn = true;
+
+    for instruction in instructions.chars() {
+        if santas_turn {
+            position = new_position(position, instruction);
+            visited.insert(position);
+        }
+        else {
+            robosanta_position = new_position(robosanta_position, instruction);
+            visited.insert(robosanta_position);
+        }
+        santas_turn = !santas_turn
+    }
+    println!("Positions visited by Santa & RoboSanta: {}", visited.len());
 }
