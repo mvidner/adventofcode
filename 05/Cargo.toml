@@ -1,0 +1,7 @@
+[package]
+name = "05_doesnt_he_have_intern_elves_for_this"
+version = "0.1.0"
+authors = ["Martin Vidner <martin@vidner.net>"]
+
+[[bin]]
+name = "05_doesnt_he_have_intern_elves_for_this"
