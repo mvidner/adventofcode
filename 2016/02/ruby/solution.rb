@@ -3,8 +3,14 @@ require "set"
 
 instructions = File.readlines("input.txt").map(&:chomp)
 
+class Array
+  def strict_at(i)
+    return nil if i < 0
+    at(i)
+  end
+end
+
 class Keypad
-  # we model the keypad with Cartesian coordinates, with "5" at [0, 0]
   attr :pos_x
   attr :pos_y
 
@@ -16,48 +22,53 @@ class Keypad
   }.freeze
 
 
-  def initialize
-    @pos_x = 0
-    @pos_y = 0
+  def initialize(x, y, keys)
+    @pos_x = x
+    @pos_y = y
+    @keys  = keys
   end
 
-  KEYS = [
-          [1, 2, 3],
-          [4, 5, 6],
-          [7, 8, 9]
-         ].freeze
-
-  def key
-    KEYS[1 - @pos_y][@pos_x + 1]
-  end
-
-  def clamp(x)
-    if x < -1
-      -1
-    elsif x > 1
-      1
-    else
-      x
-    end
+  def key(x = @pos_x, y = @pos_y)
+    # will return nil if we're out of bounds
+    row = @keys.strict_at(@keys.size - 1 - y)
+    return nil if row.nil?
+    row.strict_at(x)
   end
 
   def go(instr)
+    # puts
     instr.each_char do |c|
       dx, dy = VECTOR[c]
-      @pos_x = clamp(@pos_x + dx)
-      @pos_y = clamp(@pos_y + dy)
+      if key(@pos_x + dx, @pos_y + dy) != nil
+        @pos_x += dx
+        @pos_y += dy
+      end
+      # print "#{c}->[#{pos_x},#{pos_y}] "
     end
+  end
+
+  def solution(instrs)
+    instrs.map do |i|
+      go(i)
+      key
+    end.join ""
   end
 end
 
 puts "Solution:"
-
-pad1 = Keypad.new
-instructions.each do |i|
-  pad1.go(i)
-  print pad1.key
-end
-print "\n"
+pad1 = Keypad.new(1, 1, [
+                         [1, 2, 3],
+                         [4, 5, 6],
+                         [7, 8, 9]
+                        ].freeze)
+puts pad1.solution(instructions)
 
 puts "Bonus:"
-puts "?"
+pad2 = Keypad.new(0, 2, [
+                           [nil, nil, "1", nil, nil],
+                           [nil, "2", "3", "4", nil],
+                           ["5", "6", "7", "8", "9"],
+                           [nil, "A", "B", "C", nil],
+                           [nil, nil, "D", nil, nil],
+                           ].freeze)
+puts pad2.solution(instructions)
