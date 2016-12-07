@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en-us">
+<head>
+<meta charset="utf-8"/>
+<title>Day 3 - Advent of Code 2016</title>
+<!--[if lt IE 9]><script src="/static/html5.js"></script><![endif]-->
+<link href='//fonts.googleapis.com/css?family=Source+Code+Pro:300&subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" type="text/css" href="/static/style.css?7"/>
+<link rel="shortcut icon" href="/favicon.ico?2"/>
+</head><!--
+
+
+
+
+Oh, hello!  Funny seeing you here.
+
+I appreciate your enthusiasm, but you aren't going to find much down here.
+There certainly aren't clues to any of the puzzles.  The best surprises don't
+even appear in the source until you unlock them for real.
+
+Please be careful with automated requests; I'm not Google, and I can only take
+so much traffic.  Please be considerate so that everyone gets to play.
+
+If you're curious about how Advent of Code works, it's running on some custom
+Perl code. Other than a few integrations (auth, analytics, ads, social media),
+I built the whole thing myself, including the design, animations, prose, and
+all of the puzzles.
+
+The puzzles probably took the longest; the easiest ones were around 45 minutes
+each, but the harder ones took 2-3 hours, and a few even longer than that. A
+lot of effort went into building this thing - I hope you're enjoying playing it
+as much as I enjoyed making it for you!
+
+If you'd like to hang out, I'm @ericwastl on Twitter.
+
+- Eric Wastl
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-->
+<body>
+<header><div><h1 class="title-global"><a href="/">Advent of Code</a></h1><nav><ul><li><a href="/2016/about">[About]</a></li><li><a href="/2016/support">[AoC++]</a></li><li><a href="/2016/events">[Events]</a></li><li><a href="/2016/auth/login">[Log In]</a></li></ul></nav></div><div><h1 class="title-event">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="title-event-wrap">/^</span><a href="/2016">2016</a><span class="title-event-wrap">$/</span></h1><nav><ul><li><a href="/2016">[Calendar]</a></li><li><a href="/2016/leaderboard">[Leaderboard]</a></li><li><a href="/2016/stats">[Stats]</a></li><li><a href="/2016/sponsors">[Sponsors]</a></li></ul></nav></div></header>
+
+<div id="sidebar">
+<div id="sponsor"><div class="quiet">Our <a href="/2016/sponsors">sponsors</a> help make AoC possible:</div><p><a href="http://www.aandkrentals.net/" target="_blank" onclick="if(ga)ga('send','event','sponsor','click',this.href);">A&amp;K Rentals</a> - Affordable, high-quality homes just north of Kansas City.</p></div>
+<div id="ad">
+<script async src="//pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- Advent of Code Wide Skyscraper -->
+<ins class="adsbygoogle"
+     style="display:inline-block;width:160px;height:600px"
+     data-ad-client="ca-pub-9420604735624631"
+     data-ad-slot="8014013294"></ins>
+<script>
+(adsbygoogle = window.adsbygoogle || []).push({});
+</script>
+</div><!--/ad-->
+</div><!--/sidebar-->
+
+<main>
+<article class="day-desc"><h2>--- Day 3: Squares With Three Sides ---</h2><p>Now that you can think clearly, you move deeper into the labyrinth of hallways and office furniture that makes up this part of Easter Bunny HQ. This must be a graphic design department; the walls are covered in specifications for triangles.</p>
+<p>Or are they?</p>
+<p>The design document gives the side lengths of each triangle it describes, but... <code>5 10 25</code>?  Some of these aren't triangles. You can't help but mark the impossible ones.</p>
+<p>In a valid triangle, the sum of any two sides must be larger than the remaining side.  For example, the "triangle" given above is <span title="Unless it's on a sphere!">impossible</span>, because <code>5 + 10</code> is not larger than <code>25</code>.</p>
+<p>In your puzzle input, <em>how many</em> of the listed triangles are <em>possible</em>?</p>
+</article>
+<p>To play, please identify yourself via one of these services:</p>
+<script>
+function auth_warning_activate(service) {
+  var node = document.getElementById("auth-"+service+"-warning")
+  node.style.transition = "";
+  node.style.color = "#ff0000";
+  node.style.opacity = "1";
+}
+function auth_warning_deactivate(service) {
+  var node = document.getElementById("auth-"+service+"-warning")
+  node.style.transition = "color 1s, opacity 1s";
+  node.style.color = "";
+  node.style.opacity = "";
+}
+</script>
+<p><a href="/auth/github">[GitHub]</a> <a href="/auth/google">[Google]</a> <a href="/auth/twitter" onmouseover="auth_warning_activate('twitter');" onmouseout="auth_warning_deactivate('twitter');">[Twitter]</a> <a href="/auth/reddit">[Reddit]</a></p>
+<p id="auth-twitter-warning" class="quiet wrap">(Twitter users: if you have auth problems that claim "There is no request token for this page", please clear your twitter.com cookies and try again.)</p>
+</main>
+
+<!-- ga -->
+<script>
+(function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+(i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+})(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+ga('create', 'UA-69522494-1', 'auto');
+ga('send', 'pageview');
+</script>
+<!-- /ga -->
+</body>
+</html>
