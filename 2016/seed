@@ -1,4 +1,4 @@
-#!/bin/sh -x
+#!/bin/bash -x
 DIR=${1-$(date +%d)}
 if test -d $DIR; then
   echo $DIR exists already
@@ -6,11 +6,11 @@ if test -d $DIR; then
 fi
 NUM=${DIR#0}
 
-# COOKIES="--no-cookies --header Cookie:\\ session=$(cat cookie)"
+COOKIES=(--no-cookies --header "Cookie: session=$(cat cookie)")
 mkdir -p $DIR/ruby
 cp 01/Makefile $DIR
 echo "#!/usr/bin/env ruby" > $DIR/ruby/solution.rb
 
-wget $COOKIES --output-document=$DIR/$NUM.html http://adventofcode.com/2016/day/$NUM
-wget $COOKIES --output-document=$DIR/input.txt http://adventofcode.com/2016/day/$NUM/input
+wget "${COOKIES[@]}" --output-document=$DIR/$NUM.html http://adventofcode.com/2016/day/$NUM
+wget "${COOKIES[@]}" --output-document=$DIR/input.txt http://adventofcode.com/2016/day/$NUM/input
 git add $DIR
