@@ -64,3 +64,6 @@ d1 = Display.new(50, 6)
 instructions.each { |i| d1.perform(i) }
 puts "Solution:"
 puts d1.count_pixels
+
+puts "Bonus:"
+puts d1
