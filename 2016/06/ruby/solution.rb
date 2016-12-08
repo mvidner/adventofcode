@@ -17,3 +17,9 @@ histograms.each do |h|
   print h.to_a.max_by {|_char, count| count}.first
 end
 puts
+
+puts "Part two:"
+histograms.each do |h|
+  print h.to_a.min_by {|_char, count| count}.first
+end
+puts
