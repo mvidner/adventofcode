@@ -26,11 +26,15 @@ class Display
     end
   end
 
+  def to_s(pix = @pix)
+    pix.map { |r| r.map { |c| c == ON ? 'x' : '.' }.join "" }.join "\n"
+  end
+
   private
 
   def perform_rect(w, h)
     (0 .. h-1).each do |y|
-      @pix[y][0, w - 1] = Array.new(w) { ON }
+      @pix[y][0, w] = Array.new(w) { ON }
     end
   end
 
@@ -43,9 +47,13 @@ class Display
   end
 
   def functional_rot(pixels, width, row_idx, count)
+    # puts to_s(pixels)
     row = pixels[row_idx]
-    newrow = row[count .. -1] + row[0 .. width - count]
+    newrow = row[-count .. -1] + row[0 .. width - count - 1]
     row.replace(newrow)
+    # puts "ROT W #{width} I #{row_idx} C #{count}"
+    # puts to_s(pixels)
+    # puts
     pixels
   end
 end
