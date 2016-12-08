@@ -44,7 +44,7 @@ class Display
 
   def functional_rot(pixels, width, row_idx, count)
     row = pixels[row_idx]
-    newrow = row[count, -1] + row[0, width - count]
+    newrow = row[count .. -1] + row[0 .. width - count]
     row.replace(newrow)
     pixels
   end
