@@ -25,3 +25,22 @@ loop do
 end
 
 puts password
+
+puts "Bonus:"
+
+password = "________"
+i = 0
+loop do
+  hash = task_md5(input, i)
+  if hash[0..4] == "00000"
+    pos = hash[5].ord - "0".ord
+    if (0..7).include?(pos) && password[pos] == "_"
+      password[pos] = hash[6]
+      puts password
+      break unless password.include? "_"
+    end
+  end
+  i += 1
+end
+
+puts password
