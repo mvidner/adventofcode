@@ -21,6 +21,31 @@ def parse_instr(line)
   end
 end
 
+def instrs_as_graph(instrs)
+  dot = ""
+  dot << "digraph instructions {\n"
+  instrs.each do |type, args|
+    case type
+    when :value
+      dot << "\"#{args[:value]}\""
+      dot << " -> \"bot #{args[:bot]}\";\n"
+    when :bot
+      bot = args[:bot]
+      # funny oom bug
+      # dot <<
+      dot << "\"bot #{bot}\" [shape=record,label=\"<l>L|bot #{bot}|<h>H\"];\n"
+      dot << "\"bot #{args[:bot]}\":l"
+      dot << " -> \"#{args[:low_type] } #{args[:low_num] }\";\n"
+      dot << "\"bot #{args[:bot]}\":h"
+      dot << " -> \"#{args[:high_type]} #{args[:high_num]}\";\n"
+    else
+      raise
+    end
+  end
+  dot << "}\n"
+  dot
+end
+
 class Bot
   def initialize(id)
     @id = id
@@ -122,6 +147,8 @@ class Factory
 end
 
 instructions = File.readlines("input.txt").map { |line| parse_instr(line) }
+
+File.write("input.dot", instrs_as_graph(instructions))
 
 puts "Part A:"
 f = Factory.new(instructions)
