@@ -1,20 +1,18 @@
 #!/usr/bin/env ruby
 
+ValueInstr = Struct.new(:value, :bot)
+BotInstr   = Struct.new(:bot, :low_type, :low_num, :high_type, :high_num)
+
 # @param line [String]
-# @return [Array(Symbol, Hash)] a pair: instr type, instr arguments
-#   where type is one of :value, :bot
+# @return [ValueInstr|BotInstr]
 def parse_instr(line)
   case line
   when /^value (\d+) goes to bot (\d+)/
-    args = {value: $1.to_i, bot: $2.to_i}
-    [:value, args]
+    ValueInstr.new($1.to_i, $2.to_i)
   when /^bot (\d+) gives low to (bot|output) (\d+) and high to (bot|output) (\d+)/
-    args = {
-      bot: $1.to_i,
-      low_type: $2.to_sym, low_num: $3.to_i,
-      high_type: $4.to_sym, high_num: $5.to_i
-    }
-    [:bot, args]
+    BotInstr.new($1.to_i,
+                 $2.to_sym, $3.to_i,
+                 $4.to_sym, $5.to_i)
   else
     raise "Unmatched instr #{line}"
   end
@@ -25,20 +23,19 @@ end
 def instrs_as_graph(instrs)
   dot = ""
   dot << "digraph instructions {\n"
-  instrs.each do |type, args|
-    case type
-    when :value
-      dot << "\"#{args[:value]}\""
-      dot << " -> \"bot #{args[:bot]}\";\n"
-    when :bot
-      bot = args[:bot]
+  instrs.each do |i|
+    case i
+    when ValueInstr
+      dot << "\"#{i.value}\""
+      dot << " -> \"bot #{i.bot}\";\n"
+    when BotInstr
       # funny oom bug
       # dot <<
-      dot << "\"bot #{bot}\" [shape=record,label=\"<l>L|bot #{bot}|<h>H\"];\n"
-      dot << "\"bot #{args[:bot]}\":l"
-      dot << " -> \"#{args[:low_type] } #{args[:low_num] }\";\n"
-      dot << "\"bot #{args[:bot]}\":h"
-      dot << " -> \"#{args[:high_type]} #{args[:high_num]}\";\n"
+      dot << "\"bot #{i.bot}\" [shape=record,label=\"<l>L|bot #{i.bot}|<h>H\"];\n"
+      dot << "\"bot #{i.bot}\":l"
+      dot << " -> \"#{i.low_type } #{i.low_num}\";\n"
+      dot << "\"bot #{i.bot}\":h"
+      dot << " -> \"#{i.high_type} #{i.high_num}\";\n"
     else
       raise
     end
@@ -100,21 +97,20 @@ class Factory
   end
 
   def build_bots
-    @instrs.each do |type, args|
-      next unless type == :bot
+    @instrs.each do |i|
+      next unless i.is_a? BotInstr
 
-      bnum = args[:bot]
-      low  = build_obj(args[:low_type],  args[:low_num])
-      high = build_obj(args[:high_type], args[:high_num])
+      low  = build_obj(i.low_type,  i.low_num)
+      high = build_obj(i.high_type, i.high_num)
 
-      @bots[bnum].connect(low, high)
+      @bots[i.bot].connect(low, high)
     end
   end
 
   def pass_inputs
-    @instrs.each do |type, args|
-      next unless type == :value
-      @bots[args[:bot]].input(args[:value])
+    @instrs.each do |i|
+      next unless i.is_a? ValueInstr
+      @bots[i.bot].input(i.value)
     end
   end
 
