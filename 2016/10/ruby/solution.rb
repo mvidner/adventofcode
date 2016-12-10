@@ -1,7 +1,25 @@
 #!/usr/bin/env ruby
 require "pp"
 
-instructions = File.readlines("input.txt")
+# @param line [String]
+# @return [Array(Symbol, Hash)] a pair: instr type, instr arguments
+#   where type is one of :value, :bot
+def parse_instr(line)
+  case line
+  when /^value (\d+) goes to bot (\d+)/
+    args = {value: $1.to_i, bot: $2.to_i}
+    [:value, args]
+  when /^bot (\d+) gives low to (bot|output) (\d+) and high to (bot|output) (\d+)/
+    args = {
+      bot: $1.to_i,
+      low_type: $2.to_sym, low_num: $3.to_i,
+      high_type: $4.to_sym, high_num: $5.to_i
+    }
+    [:bot, args]
+  else
+    raise "Unmatched instr #{line}"
+  end
+end
 
 class Bot
   def initialize(id)
@@ -53,59 +71,41 @@ end
 
 class Factory
   def initialize(instrs)
+    @instrs = instrs
     @bots    = Hash.new { |h, k| h[k] = Bot.new(k) }
     @outputs = Hash.new { |h, k| h[k] = Output.new(k) }
     @value_instrs = []
-    parse(instrs)
   end
 
-  def parse(instrs)
-    instrs.each do |instr|
-      case instr
-      when /^value (\d+) goes to bot (\d+)/
-        instr_value($1.to_i, $2.to_i)
-      when /^bot (\d+) gives low to (bot|output) (\d+) and high to (bot|output) (\d+)/
-        instr_give($1.to_i, $2, $3.to_i, $4, $5.to_i)
-      else
-        raise "Unmatched instr #{instr}"
-      end
+  def build_bots
+    @instrs.each do |type, args|
+      next unless type == :bot
+
+      bnum = args[:bot]
+      low  = obj(args[:low_type],  args[:low_num])
+      high = obj(args[:high_type], args[:high_num])
+      @bots[bnum].give(low, high)
     end
   end
 
-  def instr_value(vnum, bnum)
-    @value_instrs << {vnum: vnum, bnum: bnum}
-  end
-
-  def instr_give(bnum, ltype, lnum, htype, hnum)
-    low = obj(ltype, lnum)
-    high = obj(htype, hnum)
-    @bots[bnum].give(low, high)
+  def pass_inputs
+    @instrs.each do |type, args|
+      next unless type == :value
+      @bots[args[:bot]].input(args[:value])
+    end
   end
 
   def obj(type, num)
     case type
-    when "bot"
+    when :bot
       @bots[num]
 #      [:@bots, num]
-    when "output"
+    when :output
       @outputs[num]
 #      [:@outputs, num]
     else
       raise
     end
-  end
-
-  def self.real_obj(sym, num)
-    instance_variable_get(sym)[num]
-    # argh
-  end
-
-  def run_values
-    @value_instrs.each do |vi|
-      @bots[vi[:bnum]].input(vi[:vnum])
-    end
-
-    self
   end
 
   def find(* args)
@@ -121,7 +121,13 @@ class Factory
   end
 end
 
+instructions = File.readlines("input.txt").map { |line| parse_instr(line) }
+
 puts "Part A:"
-f = Factory.new(instructions).run_values.find(61, 17)
+f = Factory.new(instructions)
+f.build_bots
+f.pass_inputs
+f.find(61, 17)
+
 puts "Part B:"
 f.partb
