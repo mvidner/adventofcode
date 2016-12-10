@@ -1,5 +1,4 @@
 #!/usr/bin/env ruby
-require "pp"
 
 # @param line [String]
 # @return [Array(Symbol, Hash)] a pair: instr type, instr arguments
@@ -21,6 +20,8 @@ def parse_instr(line)
   end
 end
 
+# Not necessary for the solution, but interesting to see.
+# In graphviz format: http://graphviz.org/content/dot-language
 def instrs_as_graph(instrs)
   dot = ""
   dot << "digraph instructions {\n"
@@ -52,45 +53,42 @@ class Bot
     @values = []
   end
 
+  def self.watch_for(a, b)
+    @@watch_for = [a, b].sort
+  end
+
   def input(vnum)
     @values << vnum
 
     if @values.size == 2
-      puts "YAY B #{@id}"
-#      puts inspect
-      low  = @values.min
-      high = @values.max
-      if [low, high] == [17, 61]
-        puts "BINGO B #{@id}"
+      low, high = @values.sort
+      if [low, high] == @@watch_for
+        puts "Bot #{@id} found #{@@watch_for}"
       end
       @low.input(low)
       @high.input(high)
     end
   end
 
-  def give(low, high)
+  def connect(low, high)
     raise if @low || @high
     @low = low
     @high = high
   end
 
   def inspect
-    "(B#{@id} #{@values}->#{[@low,@high]})"
+    "(B#{@id} #{@values}->#{[@low.class,@high.class]})"
   end
 end
 
-class Output
-  def initialize(id)
-    @id = id
-  end
-
+Output = Struct.new(:id, :value) do
   def input(vnum)
-    @value = vnum
-    puts "OUT #{@id} got #{@value}"
+    self.value = vnum
+    # puts "OUT #{id} got #{value}"
   end
 
-  def value
-    @value
+  def inspect
+    "#O<##{id}=#{value}>"
   end
 end
 
@@ -99,7 +97,6 @@ class Factory
     @instrs = instrs
     @bots    = Hash.new { |h, k| h[k] = Bot.new(k) }
     @outputs = Hash.new { |h, k| h[k] = Output.new(k) }
-    @value_instrs = []
   end
 
   def build_bots
@@ -107,9 +104,10 @@ class Factory
       next unless type == :bot
 
       bnum = args[:bot]
-      low  = obj(args[:low_type],  args[:low_num])
-      high = obj(args[:high_type], args[:high_num])
-      @bots[bnum].give(low, high)
+      low  = build_obj(args[:low_type],  args[:low_num])
+      high = build_obj(args[:high_type], args[:high_num])
+
+      @bots[bnum].connect(low, high)
     end
   end
 
@@ -120,29 +118,20 @@ class Factory
     end
   end
 
-  def obj(type, num)
+  def build_obj(type, num)
     case type
     when :bot
       @bots[num]
-#      [:@bots, num]
     when :output
       @outputs[num]
-#      [:@outputs, num]
     else
       raise
     end
   end
 
-  def find(* args)
-    puts "finding #{args}"
-    p @outputs
-#    pp @bots
-    self
-  end
-
   def partb
-    puts [@outputs[0].value, @outputs[1].value, @outputs[2].value]
-    puts @outputs[0].value * @outputs[1].value * @outputs[2].value
+    outputs = [@outputs[0].value, @outputs[1].value, @outputs[2].value]
+    puts "The product of #{outputs} is #{outputs.reduce(1, :*)}"
   end
 end
 
@@ -153,8 +142,8 @@ File.write("input.dot", instrs_as_graph(instructions))
 puts "Part A:"
 f = Factory.new(instructions)
 f.build_bots
+Bot.watch_for(61, 17)
 f.pass_inputs
-f.find(61, 17)
 
 puts "Part B:"
 f.partb
