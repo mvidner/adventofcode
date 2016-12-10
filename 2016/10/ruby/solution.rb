@@ -45,6 +45,10 @@ class Output
     @value = vnum
     puts "OUT #{@id} got #{@value}"
   end
+
+  def value
+    @value
+  end
 end
 
 class Factory
@@ -108,8 +112,16 @@ class Factory
     puts "finding #{args}"
     p @outputs
 #    pp @bots
+    self
+  end
+
+  def partb
+    puts [@outputs[0].value, @outputs[1].value, @outputs[2].value]
+    puts @outputs[0].value * @outputs[1].value * @outputs[2].value
   end
 end
 
 puts "Part A:"
-Factory.new(instructions).run_values.find(61, 17)
+f = Factory.new(instructions).run_values.find(61, 17)
+puts "Part B:"
+f.partb
