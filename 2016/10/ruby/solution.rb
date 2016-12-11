@@ -1,48 +1,6 @@
 #!/usr/bin/env ruby
 
-ValueInstr = Struct.new(:value, :bot)
-BotInstr   = Struct.new(:bot, :low_type, :low_num, :high_type, :high_num)
-
-# @param line [String]
-# @return [ValueInstr|BotInstr]
-def parse_instr(line)
-  case line
-  when /^value (\d+) goes to bot (\d+)/
-    ValueInstr.new($1.to_i, $2.to_i)
-  when /^bot (\d+) gives low to (bot|output) (\d+) and high to (bot|output) (\d+)/
-    BotInstr.new($1.to_i,
-                 $2.to_sym, $3.to_i,
-                 $4.to_sym, $5.to_i)
-  else
-    raise "Unmatched instr #{line}"
-  end
-end
-
-# Not necessary for the solution, but interesting to see.
-# In graphviz format: http://graphviz.org/content/dot-language
-def instrs_as_graph(instrs)
-  dot = ""
-  dot << "digraph instructions {\n"
-  instrs.each do |i|
-    case i
-    when ValueInstr
-      dot << "\"#{i.value}\""
-      dot << " -> \"bot #{i.bot}\";\n"
-    when BotInstr
-      # funny oom bug
-      # dot <<
-      dot << "\"bot #{i.bot}\" [shape=record,label=\"<l>L|bot #{i.bot}|<h>H\"];\n"
-      dot << "\"bot #{i.bot}\":l"
-      dot << " -> \"#{i.low_type } #{i.low_num}\";\n"
-      dot << "\"bot #{i.bot}\":h"
-      dot << " -> \"#{i.high_type} #{i.high_num}\";\n"
-    else
-      raise
-    end
-  end
-  dot << "}\n"
-  dot
-end
+require_relative "instructions"
 
 class Bot
   def initialize(id)
@@ -132,8 +90,6 @@ class Factory
 end
 
 instructions = File.readlines("input.txt").map { |line| parse_instr(line) }
-
-File.write("input.dot", instrs_as_graph(instructions))
 
 puts "Part A:"
 f = Factory.new(instructions)
