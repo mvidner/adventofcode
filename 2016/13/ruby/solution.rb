@@ -21,10 +21,6 @@ class Map
     raise "Bad goal" if @rows[@fy][@fx] == "#"
 
     @steps = 0
-
-    @x = 1
-    @y = 1
-    @rows[@y][@x] = "O"
   end
 
   def dup
@@ -41,6 +37,7 @@ class Map
     @y = y
     trace
     check!
+    @steps += 1
     @rows[y][x] = "O"
 #    puts "go #{x} #{y}"
 #    print_map
@@ -117,7 +114,8 @@ class Map
     ss
   end
 
-  def step
+  def step(x, y)
+    go(x, y)
 #    check!
 
     bs = best_steps
@@ -131,10 +129,7 @@ class Map
       end
 
       if @rows[ny][nx] == "."
-        @steps += 1
-        go(nx, ny)
-
-        dup.step
+        dup.step(nx, ny)
       end
       print "##{i} of #{bs} failed\n"
     end
@@ -152,10 +147,10 @@ class Map
 end
 
 test = Map.new(10, 8, 7, 4, 10)
-# test.step
+# test.step(1, 1)
 
 part_a = Map.new(50, 50, 31, 39, 1352)
-part_a.step
+part_a.step(1, 1)
 
 m = Map.new(15, 15, 10, 8, 1352)
-# m.step
+# m.step(1, 1)
