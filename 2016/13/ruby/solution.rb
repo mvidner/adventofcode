@@ -114,8 +114,8 @@ class Map
       end
 
       if @rows[ny][nx] == "."
-        go(nx, ny)
         @steps += 1
+        go(nx, ny)
 
         dup.step
       end
