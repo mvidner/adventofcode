@@ -72,9 +72,9 @@ class Map
   end
 
   def sgn(a)
-    if a > 1
+    if a > 0
       1
-    elsif a < 1
+    elsif a < 0
       -1
     else
       0
