@@ -94,10 +94,13 @@ class Map
     sx = sgn(dx)
     sy = sgn(dy)
     if dx.abs > dy.abs
-      [[sx, 0], [0, sy], [0, -sy], [-sx, 0]]
+      sy = 1 if sy == 0
+      ss = [[sx, 0], [0, sy], [0, -sy], [-sx, 0]]
     else
-      [[0, sy], [sx, 0], [-sx, 0], [0, -sy]]
+      sx = 1 if sx == 0
+      ss = [[0, sy], [sx, 0], [-sx, 0], [0, -sy]]
     end
+    ss
   end
 
   def step
