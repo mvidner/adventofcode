@@ -31,16 +31,17 @@ class Map
     copy
   end
 
-
+  # @return [self] self if goal reached, otherwise nil
   def go(x, y)
     @x = x
     @y = y
     trace
-    check!
+    found = check!
+    return found unless found.nil?
+
     @steps += 1
     @rows[y][x] = "O"
-#    puts "go #{x} #{y}"
-#    print_map
+    nil
   end
 
   # @return the initial state
@@ -51,8 +52,8 @@ class Map
   end
 
   def print_map
-    0.upto(@height - 1).map do |y|
-      0.upto(@width - 1).map do |x|
+    0.upto(@height - 1).each do |y|
+      0.upto(@width - 1).each do |x|
         if x== @fx && y == @fy
           print "X"
         else
@@ -64,25 +65,18 @@ class Map
   end
 
   def sgn(a)
-    if a > 0
-      1
-    elsif a < 0
-      -1
-    else
-      0
-    end
+    return  1 if a > 0
+    return -1 if a < 0
+    0
   end
 
   def check!
     if @x == @fx && @y == @fy
       puts "GOAL, in #{@steps} steps"
-      exit
+      self
+    else
+      nil
     end
-  end
-
-  def pause
-    puts "Press Enter"
-    readline
   end
 
   def best_steps
@@ -97,26 +91,13 @@ class Map
       sx = 1 if sx == 0
       ss = [[0, sy], [sx, 0], [-sx, 0], [0, -sy]]
     end
-    if dy < 12
-      print_map
-      p [dx, dy]
-      p [sx, sy]
-      p ss
-#      pause
-      $timer_step = 1
-    end
-    if false && dx == 0
-#      pause
-      p [dx, dy]
-      p [sx, sy]
-      p ss
-    end
     ss
   end
 
+  # @return [self] self if goal reached, otherwise nil
   def step(x, y)
-    go(x, y)
-#    check!
+    found = go(x, y)
+    return found unless found.nil?
 
     bs = best_steps
     bs.each_with_index do |d, i|
@@ -129,12 +110,12 @@ class Map
       end
 
       if @rows[ny][nx] == "."
-        dup.step(nx, ny)
+        found = dup.step(nx, ny)
+        return found unless found.nil?
       end
-      print "##{i} of #{bs} failed\n"
     end
     # we have exhausted all steps
-#    print "!"
+    nil
   end
 
   def trace
@@ -146,11 +127,16 @@ class Map
   end
 end
 
+puts "Part A:"
 test = Map.new(10, 8, 7, 4, 10)
 # test.step(1, 1)
 
 part_a = Map.new(50, 50, 31, 39, 1352)
-part_a.step(1, 1)
+found = part_a.step(1, 1)
+found.print_map
 
 m = Map.new(15, 15, 10, 8, 1352)
 # m.step(1, 1)
+
+puts "Part B:"
+puts "TODO"
