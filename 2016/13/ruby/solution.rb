@@ -107,7 +107,7 @@ class Map
       dx, dy = d
       ny = @y + dy
       nx = @x + dx
-      if nx < 0 || ny < 0 || nx >= @width || ny >= @height
+      if !within_board?(nx, ny)
         print "@"
         next
       end
@@ -129,17 +129,43 @@ class Map
     puts $timer
   end
 
+  def within_board?(x, y)
+    x >= 0 && y >= 0 && x < @width && y < @height
+  end
+
   STEPS = [[0, 1], [1, 0], [-1, 0], [0, -1]]
-  def reach(x, y, limit)
-    previous_generation = Set.new
-    previous_generation << [x, y]
-    while limit > 0
-      next_generation = Set.new
-      previous_generation.each do |px, py|
-        @rows[y][x] #... STEPS...
-      end
-      #...
+  def steps_within_board(x, y)
+    r = STEPS.map {|dx,dy| [x+dx, y+dy]}.find_all {|x,y| within_board?(x,y) }
+    r
+  end
+
+  def reach(start_x, start_y, limit)
+    current_generation = Set.new
+    next_generation = Set.new
+    next_generation << [start_x, start_y]
+
+    # >= 0: no steps means visit the 1 initial position
+    while limit >= 0
       limit -= 1
+      current_generation = next_generation
+      next_generation = Set.new
+
+      current_generation.each do |x, y|
+        # They may point to unavailable/already visited cells
+        # so resolve it now
+        case @rows[y][x]
+        when "#", "O"
+          nil
+        when "."
+          @reached += 1
+          @rows[y][x] = "O"
+          next_generation.merge(steps_within_board(x, y))
+          # mistake: finding the next step even though the current one
+          # ended in a wall
+        else
+          raise
+        end
+      end
     end
     self
   end
@@ -157,10 +183,12 @@ m = Map.new(15, 15, 10, 8, 1352)
 # m.step(1, 1)
 
 puts "Part B:"
-#reached = test.reach(1, 1, 50)
-0.upto(3).each do |limit|
-  puts "limit #{limit}"
-  test = Map.new(10, 8, nil, nil, 10)
-  reached = test.reach(1, 1, limit)
-  puts reached.reached
+limit = 50
+part_b0 = Map.new(limit+2, limit+2, nil, nil, 1352)
+
+limit.upto(limit).each do |lim|
+  part_b = part_b0.dup
+  reached = part_b.reach(1, 1, lim)
+  part_b.print_map
+  puts "In #{lim} steps we can reach #{reached.reached} cells."
 end
