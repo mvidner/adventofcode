@@ -97,16 +97,16 @@ class Map
       sx = 1 if sx == 0
       ss = [[0, sy], [sx, 0], [-sx, 0], [0, -sy]]
     end
-    if dy < 11
+    if dy < 12
       print_map
       p [dx, dy]
       p [sx, sy]
       p ss
-      pause
+#      pause
       $timer_step = 1
     end
     if false && dx == 0
-      pause
+#      pause
       p [dx, dy]
       p [sx, sy]
       p ss
