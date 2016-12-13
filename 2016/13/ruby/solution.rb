@@ -1,10 +1,12 @@
 #!/usr/bin/env ruby
+require "set"
 
 $timer = 0
 $timer_step = 1000
 
 class Map
   attr_accessor :rows
+  attr_reader :reached
 
   def initialize(width, height, finish_x, finish_y, key)
     @width = width
@@ -18,9 +20,10 @@ class Map
         free?(x, y) ? "." : "#"
       end
     end
-    raise "Bad goal" if @rows[@fy][@fx] == "#"
+    raise "Bad goal" if @fy && @rows[@fy][@fx] == "#"
 
     @steps = 0
+    @reached = 0
   end
 
   def dup
@@ -125,6 +128,21 @@ class Map
     print_map
     puts $timer
   end
+
+  STEPS = [[0, 1], [1, 0], [-1, 0], [0, -1]]
+  def reach(x, y, limit)
+    previous_generation = Set.new
+    previous_generation << [x, y]
+    while limit > 0
+      next_generation = Set.new
+      previous_generation.each do |px, py|
+        @rows[y][x] #... STEPS...
+      end
+      #...
+      limit -= 1
+    end
+    self
+  end
 end
 
 puts "Part A:"
@@ -139,4 +157,10 @@ m = Map.new(15, 15, 10, 8, 1352)
 # m.step(1, 1)
 
 puts "Part B:"
-puts "TODO"
+#reached = test.reach(1, 1, 50)
+0.upto(3).each do |limit|
+  puts "limit #{limit}"
+  test = Map.new(10, 8, nil, nil, 10)
+  reached = test.reach(1, 1, limit)
+  puts reached.reached
+end
