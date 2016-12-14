@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+require "set"
 
 FLOORS = 4
 FLOORS_1 = FLOORS - 1
@@ -105,7 +106,8 @@ def small_subsets(set)
 end
 
 def transitions_from_list(states)
-  states.map(&:transitions).reduce([], &:concat)
+#  states.map(&:transitions).reduce([], &:concat)
+  states.map(&:transitions).reduce(Set.new, &:merge)
 end
 
 def time_it
@@ -122,7 +124,9 @@ s0.dump
 
 states = [s0]
 
-(1..20).each do |i|
+i = 0
+loop do
+  i += 1
   states = transitions_from_list(states)
 #  states.map(&:dump)
 
