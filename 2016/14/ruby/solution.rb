@@ -13,9 +13,15 @@ end
 
 def stretched_md5(s)
   2017.times do
-    s = cached_md5(s)
+    s = md5(s)
   end
   s
+end
+
+$stretched_md5_cache = Hash.new
+
+def cached_stretched_md5(s)
+  $stretched_md5_cache[s] ||= stretched_md5(s)
 end
 
 def hash(salt, i)
@@ -27,7 +33,7 @@ def cached_hash(salt, i)
 end
 
 def stretched_hash(salt, i)
-  stretched_md5("#{salt}#{i}")
+  cached_stretched_md5("#{salt}#{i}")
 end
 
 # return nil or the one character repeated
@@ -45,6 +51,7 @@ def solve(salt, hash_name = :hash)
     if (c = has_triple?(h))
       r = (i + 1)..(i + 1000)
       if r.any? { |j| send(hash_name, salt, j).include?(c * 5) }
+#        print "."
         keys_found += 1
       end
     end
@@ -52,6 +59,7 @@ def solve(salt, hash_name = :hash)
     break if keys_found == 64
 
     i += 1
+#    print "(#{i})" if 0 == i % 1000
   end
   puts i
 end
