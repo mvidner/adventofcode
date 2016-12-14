@@ -5,6 +5,12 @@ def md5(s)
   Digest::MD5.hexdigest(s)
 end
 
+$md5_cache = Hash.new
+
+def cached_md5(s)
+  $md5_cache[s] ||= md5(s)
+end
+
 def hash(salt, i)
   md5("#{salt}#{i}")
 end
@@ -24,9 +30,9 @@ def solve(salt)
   keys_found = 0
   i = 0
   loop do
-    h = hash(salt, i)
+    h = cached_hash(salt, i)
     if (c = has_triple?(h))
-      if ((i + 1)..(i + 1000)).any? { |j| hash(salt, j).include?(c * 5) }
+      if ((i + 1)..(i + 1000)).any? { |j| cached_hash(salt, j).include?(c * 5) }
         keys_found += 1
       end
     end
