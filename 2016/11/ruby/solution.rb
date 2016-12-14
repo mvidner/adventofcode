@@ -20,6 +20,10 @@ MICROCHIP_NAMES = ELEMENT_NAMES.map { |e| "#{e}M" }.freeze
 # The floor numbers are encoded as the distance from the top floor
 # so that the goal state has all zeroes.
 State = Struct.new(:elevator, :things) do
+  def goal?
+    elevator.zero? && things.all?(&:zero?)
+  end
+
   def dump(io = $stdout)
     0.upto(FLOORS_1).map do |f|
       s = "F#{FLOORS - f} "
@@ -103,14 +107,23 @@ def transitions_from_list(states)
   states.map(&:transitions).reduce([], &:concat)
 end
 
+def time_it
+  t0 = Time.now
+  yield
+  t1 = Time.now
+  printf("It took %.4g seconds.\n", t1 - t0)
+end
+
 puts "The initial state:"
 s0 = State.new(3, [2, 3, 1, 3])
 s0.dump
 
-puts "All transitions from the initial state:"
-s1s = transitions_from_list([s0])
-s1s.map(&:dump)
+states = [s0]
 
-puts "All transitions from the second states:"
-s2s = transitions_from_list(s1s)
-s2s.map(&:dump)
+(1..20).each do |i|
+  states = transitions_from_list(states)
+#  states.map(&:dump)
+
+  puts "After #{i} steps: #{states.size} states"
+  break if states.any?(&:goal?)
+end
