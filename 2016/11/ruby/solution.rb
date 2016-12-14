@@ -3,7 +3,8 @@
 FLOORS = 4
 FLOORS_1 = FLOORS - 1
 
-ELEMENTS = 2
+# ELEMENTS = 2
+ELEMENTS = 5
 ELEMENTS_1 = ELEMENTS - 1
 
 THINGS = ELEMENTS * 2
@@ -115,7 +116,8 @@ def time_it
 end
 
 puts "The initial state:"
-s0 = State.new(3, [2, 3, 1, 3])
+# s0 = State.new(3, [2, 3, 1, 3])
+s0 = State.new(3, [3, 3, 3, 3, 2, 1, 2, 2, 2, 2])
 s0.dump
 
 states = [s0]
