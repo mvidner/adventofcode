@@ -5,7 +5,8 @@ FLOORS = 4
 FLOORS_1 = FLOORS - 1
 
 # ELEMENTS = 2
-ELEMENTS = 5
+# ELEMENTS = 5
+ELEMENTS = 7
 ELEMENTS_1 = ELEMENTS - 1
 
 THINGS = ELEMENTS * 2
@@ -58,11 +59,10 @@ State = Struct.new(:elevator, :things) do
         c.each do |i|           # i is an index of a thing
           new_things[i] = ne
         end
-        new_states << State.new(ne, new_things)
+        new_state = State.new(ne, new_things)
+        yield(new_state) if new_state.no_chips_fried?
       end
     end
-    # some of new_states may be invalid
-    new_states.find_all(&:no_chips_fried?)
   end
 
   # This only checks the generator-chip part of a valid state.
@@ -106,8 +106,10 @@ def small_subsets(set)
 end
 
 def transitions_from_list(states)
+  new_states = Set.new
 #  states.map(&:transitions).reduce([], &:concat)
-  states.map(&:transitions).reduce(Set.new, &:merge)
+  states.map { |s| s.transitions { |ns| new_states << ns } }
+  new_states
 end
 
 def time_it
@@ -119,7 +121,8 @@ end
 
 puts "The initial state:"
 # s0 = State.new(3, [2, 3, 1, 3])
-s0 = State.new(3, [3, 3, 3, 3, 2, 1, 2, 2, 2, 2])
+# s0 = State.new(3, [3, 3, 3, 3, 2, 1, 2, 2, 2, 2])
+s0 = State.new(3, [3, 3, 3, 3, 2, 1, 2, 2, 2, 2, 3, 3, 3, 3])
 s0.dump
 
 states = [s0]
@@ -127,9 +130,13 @@ states = [s0]
 i = 0
 loop do
   i += 1
-  states = transitions_from_list(states)
+  time_it { states = transitions_from_list(states) }
 #  states.map(&:dump)
 
   puts "After #{i} steps: #{states.size} states"
   break if states.any?(&:goal?)
+
+  # PROFILER:
+  # ruby -r profile ruby/solution.rb
+  # break if i > 5
 end
