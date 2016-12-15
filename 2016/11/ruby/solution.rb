@@ -23,8 +23,6 @@ MICROCHIP_NAMES = ELEMENT_NAMES.map { |e| "#{e}M" }.freeze
 # The floor numbers are encoded as the distance from the top floor
 # so that the goal state has all zeroes.
 State = Struct.new(:elevator, :things) do
-  @@cache = []
-
   def goal?
     elevator.zero? && things.all?(&:zero?)
   end
@@ -62,8 +60,7 @@ State = Struct.new(:elevator, :things) do
           new_things[i] = ne
         end
         new_state = State.new(ne, new_things)
-#        yield(new_state) if new_state.no_chips_fried?
-        yield(new_state) if new_state.cached_no_chips_fried?
+        yield(new_state) if new_state.no_chips_fried?
       end
     end
   end
@@ -88,15 +85,6 @@ State = Struct.new(:elevator, :things) do
 
     # If these bitmaps intersect, there are some fried chips
     (radioactive_floors & unprotected_chips) == 0
-  end
-
-  def cached_no_chips_fried?
-    num = things.reduce(elevator) { |acc, e| acc = 4 * acc + e }
-    puts num
-    if @@cache[num].nil?
-      @@cache[num] = no_chips_fried?
-    end
-    @@cache[num]
   end
 end
 
