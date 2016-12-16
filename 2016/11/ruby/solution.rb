@@ -1,6 +1,5 @@
 #!/usr/bin/env ruby
 require "set"
-require "pmap"
 
 FLOORS = 4
 FLOORS_1 = FLOORS - 1
@@ -107,18 +106,9 @@ def small_subsets(set)
 end
 
 def transitions_from_list(states)
-  m = Mutex.new
   new_states = Set.new
 #  states.map(&:transitions).reduce([], &:concat)
-  states.pmap(3) do |s|
-    nns = Set.new
-    s.transitions do |ns|
-      nns << ns
-    end
-    m.synchronize do
-      new_states.merge nns
-    end
-  end
+  states.map { |s| s.transitions { |ns| new_states << ns } }
   new_states
 end
 
