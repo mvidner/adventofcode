@@ -37,16 +37,35 @@ def white_elephant_party_two(n)
   # original numbers as values
   elves = 1.upto(n).to_a
 
+  empty = 0
+  empty2 = 0
   i = 0
-  while elves.size > 1
-    n = elves.size
-    puts n if 0 == n % 10000
+  while n > 1
     i = i % n
     victim = (i + (n / 2)) % n
+    if 0 == n % 10000
+      puts "N #{n}, I #{i}, V #{victim}"
+    end
 #    puts "@#{i}'s turn, the victim is @#{victim}"
 #    p elves
-    elves.delete_at(victim)
-    i += 1 if victim > i
+    if victim > i
+      if empty2 > 0
+        elves.compact!
+        empty2 = 0
+      end
+      elves[victim + empty] = nil
+      empty += 1
+      i += 1
+      n -= 1
+    else
+      if empty > 0
+        elves.compact!
+        empty = 0
+      end
+      elves[victim + empty2] = nil
+      empty2 += 1
+      n -= 1
+    end
   end
 
   elves.first
