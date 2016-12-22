@@ -1,16 +1,22 @@
 #!/usr/bin/env ruby
-require "bitarray"
 
-allowed = BitArray.new(2 ** 32)
-
-File.readlines("input.txt").each_with_index do |line, i|
+blocked = File.readlines("input.txt").map do |line|
   line =~ /(\d+)-(\d+)/
   low = $1.to_i
   high = $2.to_i
   raise "Invalid range input" if high < low
-  puts "#{i}: #{high-low} #{line}"
-  (low .. high).each { |a| allowed[a] = 0 }
+  [low, high]
 end
 
 puts "Solution:"
-puts (0 ... 2 ** 32).find { |i| allowed[i] == 1 }
+first_allowed = 0
+blocked.sort.each do |low, high|
+  if high < first_allowed
+    next
+  elsif (low .. high).member?(first_allowed)
+    first_allowed = high + 1
+  else
+    break
+  end
+end
+puts first_allowed
