@@ -8,10 +8,12 @@ def checksum(s)
   if s.size.odd?
     s
   else
-    s = s.each_char.each_slice(2).map do |a, b|
-      (a == b) ? "1" : "0"
-    end.join("")
-    checksum(s)
+    half = s.size / 2
+    cs = ""
+    half.times do |i|
+      cs << ((s[2 * i] == s[2 * i + 1]) ? "1" : "0")
+    end
+    checksum(cs)
   end
 end
 
