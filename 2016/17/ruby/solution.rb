@@ -79,3 +79,30 @@ puts solve("ulqzkmiv")
 
 puts "Part one:"
 puts solve("udskfozm")
+
+puts
+
+def longest(passcode, path = "", max = 0)
+  if position(path) == [3, 3]
+    max = path.size if max < path.size
+    return max
+  end
+
+  moves = possible_moves(passcode, path)
+  moves.each do |m|
+    max = longest(passcode, path + m, max)
+  end
+  max
+end
+
+puts "Longest path for sample 1:"
+puts longest("ihgpwlah")
+
+puts "Longest path for sample 2:"
+puts longest("kglvqrro")
+
+puts "Longest path for sample 3:"
+puts longest("ulqzkmiv")
+
+puts "Part two:"
+puts longest("udskfozm")
