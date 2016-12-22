@@ -1,8 +1,5 @@
 #!/usr/bin/env ruby
 
-DISK_SIZE = 272
-input = "10111100110001111"
-
 def dragon_step(s)
   s + "0" + s.reverse.tr("01", "10")
 end
@@ -18,12 +15,18 @@ def checksum(s)
   end
 end
 
-puts "Solution:"
-
-disk = input
-while disk.size < DISK_SIZE
-  disk = dragon_step(disk)
+def solve(input, disk_size)
+  disk = input
+  while disk.size < disk_size
+    disk = dragon_step(disk)
+  end
+  checksum(disk[0, disk_size])
 end
-disk = disk[0, DISK_SIZE]
 
-puts checksum(disk)
+input = "10111100110001111"
+
+puts "Solution:"
+puts solve(input, 272)
+
+puts "Part two:"
+puts solve(input, 35651584)
