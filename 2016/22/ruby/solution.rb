@@ -33,3 +33,30 @@ grid.size.times do |ax|
 end
 
 puts viable_pairs
+
+BIG = 400
+small_min_size = 999
+small_max_used = 0
+big_min_used = 999
+grid.size.times do |ax|
+  grid[ax].size.times do |ay|
+    g = grid[ax][ay]
+    if g.size > BIG
+      if big_min_used > g.used
+        big_min_used = g.used
+      end
+    else
+      if small_min_size > g.size
+        small_min_size = g.size
+      end
+      if small_max_used < g.used
+        small_max_used = g.used
+      end
+    end
+  end
+end
+
+puts "Big min used #{big_min_used}"
+puts "Small max used #{small_max_used}"
+puts "Small min size #{small_min_size}"
+raise "Cannot partition nodes" unless small_max_used < small_min_size && small_min_size < big_min_used
