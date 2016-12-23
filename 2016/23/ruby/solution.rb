@@ -64,8 +64,25 @@ def run(instrs, regarr)
 
     when :jnz
       _opcode, cond_isreg, cond_num, displ_isreg, displ_num = * instr
-      if (cond_isreg ? regarr[cond_num] : cond_num) != 0
-        ip += (displ_isreg ? regarr[displ_num] : displ_num) - 1
+      if cond_isreg
+        if regarr[cond_num] != 0
+          displacement = displ_isreg ? regarr[displ_num] : displ_num
+          if displacement == -2 && instrs[ip - 3][0] == :inc && instrs[ip - 2][0] == :dec
+            dstreg = instrs[ip - 3][2]
+            srcreg = instrs[ip - 2][2]
+            regarr[dstreg] += regarr[srcreg]
+            timer += regarr[srcreg] * 3 # approximately
+            regarr[srcreg] = 0
+            # ip correctly points after the loop
+          else
+            ip += displacement - 1
+          end
+        end
+      else
+        if cond_num != 0
+          displacement = displ_isreg ? regarr[displ_num] : displ_num
+          ip += displacement - 1
+        end
       end
 
     when :tgl
