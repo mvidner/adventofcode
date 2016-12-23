@@ -1,13 +1,34 @@
 #!/usr/bin/env ruby
 
+# instruction internal representation is a tuple
+# (opcode, arg1_is_register, arg1_num, arg2_is_register, arg2_num)
+#
+# arg2_* may be nil
+
 A_ORD = "a".ord
 
-# @param regarr [Array] *a* at 0, *d* at 3
-def decode(arg, regarr)
+def parse_arg(arg)
   if ("a" .. "d").cover?(arg[0])
-    regarr[arg.ord - A_ORD]
+    [true, arg.ord - A_ORD]
   else
-    arg.to_i
+    [false, arg.to_i]
+  end
+end
+
+def parse(string_instr)
+  case string_instr
+  when /inc (\S+)/
+    [:inc, * parse_arg($1), nil, nil]
+  when /dec (\S+)/
+    [:dec, * parse_arg($1), nil, nil]
+  when /tgl (\S+)/
+    [:tgl, * parse_arg($1), nil, nil]
+  when /cpy (\S+) (\S+)/
+    [:cpy, * parse_arg($1), * parse_arg($2)]
+  when /jnz (\S+) (\S+)/
+    [:jnz, * parse_arg($1), * parse_arg($2)]
+  else
+    raise "Cannot parse instruction '#{string_instr}"
   end
 end
 
@@ -25,41 +46,42 @@ def run(instrs, regarr)
     timer += 1
     puts "#{ip}: #{regarr}; #{timer}" if 0 == timer % 1000000
     break if instr.nil?
-    case instr
-    when /inc ([a-d])/
-      r = $1.ord - A_ORD
+    case instr[0]
+    when :inc
+      r = instr[2]
       regarr[r] += 1
-    when /dec ([a-d])/
-      r = $1.ord - A_ORD
+    when :dec
+      r = instr[2]
       regarr[r] -= 1
 
-    when /cpy ([a-d0-9-]+) ([a-d])/
-      val  = decode($1, regarr)
-      dest = $2.ord - A_ORD
-      regarr[dest] = val
-
-    when /cpy ([a-d0-9-]+) ([0-9-]+)/
-      # invalid instruction, skip it
-
-    when /jnz ([a-d0-9-]+) ([a-d0-9-]+)/
-      cond = decode($1, regarr)
-      displacement = decode($2, regarr)
-      if cond != 0
-        ip += displacement - 1
+    when :cpy
+      _opcode, src_isreg, src_num, dest_isreg, dest_num = * instr
+      if dest_isreg
+        regarr[dest_num] = src_isreg ? regarr[src_num] : src_num
+      else
+        # invalid instruction, skip it
       end
 
-    when /tgl ([a-d])/
-      displacement = regarr[$1.ord - A_ORD]
-      addr = ip - 1 + displacement
+    when :jnz
+      _opcode, cond_isreg, cond_num, displ_isreg, displ_num = * instr
+      if (cond_isreg ? regarr[cond_num] : cond_num) != 0
+        ip += (displ_isreg ? regarr[displ_num] : displ_num) - 1
+      end
+
+    when :tgl
+      addr = ip - 1 + (instr[1] ? regarr[instr[2]] : instr[2])
       next unless (0...instrs.size).cover?(addr)
       opcode = {
-        "inc" => "dec", "dec" => "inc", "tgl" => "inc",
-        "cpy" => "jnz", "jnz" => "cpy"
-      }.fetch(instrs[addr][0..2])
-      # make a new string, do not mutate the original string
-      instrs[addr] = opcode + instrs[addr][3..-1]
+        inc: :dec,
+        dec: :inc,
+        tgl: :inc,
+        cpy: :jnz,
+        jnz: :cpy
+      }.fetch(instrs[addr][0])
+      # make a new instruction
+      instrs[addr] = [opcode] + instrs[addr][1..-1]
     else
-      raise "#{instr}: #{ip}: #{regarr}"
+      raise "Unknown instruction #{instr}"
     end
   end
 
@@ -73,7 +95,7 @@ def time_it
   printf("It took %.4g seconds.\n", t1 - t0)
 end
 
-instrs = File.readlines("input.txt").map(&:chomp)
+instrs = File.readlines("input.txt").map { |i| parse(i) }
 
 regarr = [7, 0, 0, 0]
 
