@@ -38,6 +38,7 @@ BIG = 400
 small_min_size = 999
 small_max_used = 0
 big_min_used = 999
+big_count = 0
 grid.size.times do |ax|
   grid[ax].size.times do |ay|
     g = grid[ax][ay]
@@ -45,6 +46,8 @@ grid.size.times do |ax|
       if big_min_used > g.used
         big_min_used = g.used
       end
+      big_count += 1
+      print "#"
     else
       if small_min_size > g.size
         small_min_size = g.size
@@ -52,10 +55,17 @@ grid.size.times do |ax|
       if small_max_used < g.used
         small_max_used = g.used
       end
+      if g.used == 0
+        print "_"
+      else
+        print "."
+      end
     end
   end
+  puts
 end
 
+puts "Big count #{big_count}"
 puts "Big min used #{big_min_used}"
 puts "Small max used #{small_max_used}"
 puts "Small min size #{small_min_size}"
