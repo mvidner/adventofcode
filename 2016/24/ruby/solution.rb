@@ -1,5 +1,6 @@
 #!/usr/bin/env ruby
 require "set"
+require "pp"
 
 $timer = 0
 $timer_step = 1
@@ -47,19 +48,41 @@ class Map
     distances.index(min)
   end
 
-  def visit_all
-    steps = 0
-    current = 0
-    loop do
-      x, y = @numbers[current]
-      @rows[y][x] = "."
-      @numbers[current] = nil
-      break if @numbers.all?(&:nil?)
-      dsteps, current = dup.bfs_search(x, y)
-      puts "Found ##{current} in #{dsteps}"
-      steps += dsteps
+  def distances
+    return @distances if @distances
+    @distances = []
+    @numbers.each do |x, y|
+      @distances << dup.distances_from(x, y)
     end
-    puts "Total #{steps} steps"
+    @distances
+  end
+
+  def visit_all
+    pp distances
+    min_path = (1 ... @numbers.size).to_a.permutation.map do |order|
+      steps = 0
+      current = 0
+      order.each do |nxt|
+        steps += distances[current][nxt]
+        current = nxt
+      end
+      # return the path length
+      steps
+    end.tap {|p| pp p}.min
+    puts "Minimal path #{min_path}"
+
+    min_path = (1 ... @numbers.size).to_a.permutation.map do |order|
+      steps = 0
+      current = 0
+      order.each do |nxt|
+        steps += distances[current][nxt]
+        current = nxt
+      end
+      # return the path length
+      steps + distances[current][0]
+    end.tap {|p| pp p}.min
+    puts "Minimal return path #{min_path}"
+
   end
 
   def dup
@@ -168,8 +191,10 @@ class Map
     r
   end
 
-  # return [# of steps, digit found]
-  def bfs_search(start_x, start_y)
+  # return array of distances to the numbers
+  def distances_from(start_x, start_y)
+    distances = Array.new(@numbers.size, nil)
+
     current_generation = Set.new
     next_generation = Set.new
     next_generation << [start_x, start_y]
@@ -178,6 +203,7 @@ class Map
 
     loop do
       current_generation = next_generation
+#      print_map
       next_generation = Set.new
 
       current_generation.each do |x, y|
@@ -193,8 +219,12 @@ class Map
           # ended in a wall
         when /(\d)/
           # found a digit
-          print_map
-          return [steps, $1.to_i]
+          d = $1.to_i
+          distances[d] = steps
+#          p distances
+          return distances unless distances.index(nil)
+          @rows[y][x] = "O"
+          next_generation.merge(steps_within_board(x, y))
         else
           raise
         end
