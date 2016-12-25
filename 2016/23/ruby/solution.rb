@@ -188,7 +188,7 @@ def time_it
   printf("It took %.4g seconds.\n", t1 - t0)
 end
 
-instrs = File.readlines("input.txt").map { |i| parse(i) }
+instrs = File.readlines(ARGV[0] || "input.txt").map { |i| parse(i) }
 
 regarr = [7, 0, 0, 0]
 
