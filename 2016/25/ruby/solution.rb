@@ -29,6 +29,10 @@ def parse(string_instr)
     [:tgl, * parse_arg($1), nil, nil]
   when /cpy (\S+) (\S+)/
     [:cpy, * parse_arg($1), * parse_arg($2)]
+  when /and (\S+) (\S+)/
+    [:and, * parse_arg($1), * parse_arg($2)]
+  when /div (\S+) (\S+)/
+    [:div, * parse_arg($1), * parse_arg($2)]
   when /jnz (\S+) (\S+)/
     [:jnz, * parse_arg($1), * parse_arg($2)]
   else
@@ -109,7 +113,7 @@ def run(instrs, regarr)
 
   loop do
     instr = instrs[ip]
-#    puts "#{ip}: #{regarr}; #{timer}" if 0 == timer % 1000000
+    puts "#{ip}: #{regarr}; #{timer}" if 0 == timer % 1#000000
 
     next_ip = ip + 1
     timer += 1
@@ -125,7 +129,10 @@ def run(instrs, regarr)
       regarr[r] -= 1
     when :out
       r = instr[2]
-      break if yield regarr[2]
+      if yield regarr[r] # regarr[2]
+#        puts "BREAK"
+        break
+      end
 
     when :cpy, :cpy_
       _opcode, src_isreg, src_num, dest_isreg, dest_num = * instr
@@ -147,6 +154,22 @@ def run(instrs, regarr)
       _opcode, src_isreg, src_num, dest_isreg, dest_num = * instr
       if dest_isreg
         regarr[dest_num] *= src_isreg ? regarr[src_num] : src_num
+      else
+        # invalid instruction, skip it
+      end
+
+    when :div
+      _opcode, src_isreg, src_num, dest_isreg, dest_num = * instr
+      if dest_isreg
+        regarr[dest_num] /= src_isreg ? regarr[src_num] : src_num
+      else
+        # invalid instruction, skip it
+      end
+
+    when :and
+      _opcode, src_isreg, src_num, dest_isreg, dest_num = * instr
+      if dest_isreg
+        regarr[dest_num] &= src_isreg ? regarr[src_num] : src_num
       else
         # invalid instruction, skip it
       end
@@ -193,7 +216,61 @@ def time_it
   printf("It took %.4g seconds.\n", t1 - t0)
 end
 
-instrs = File.readlines(ARGV[0] || "input.txt").map { |i| parse(i) }
+def analyze
+  puts "Analyzing first loop"
+  loop1 = <<EOS
+cpy a b
+cpy 0 a
+cpy 2 c
+jnz b 2
+jnz 1 6
+dec b
+dec c
+jnz c -4
+inc a
+jnz 1 -7
+EOS
+
+  instrs = loop1.split(/\n/).map { |i| parse(i) }
+  20.times do |a|
+    regarr = [a, 0, 0, 0]
+    print regarr.inspect, " -> "
+    regarr = run(instrs, regarr)
+    print regarr.inspect, "\n"
+  end
+
+  puts "Analyzing second loop"
+  loop2 = <<EOS
+cpy 2 b
+jnz c 2
+jnz 1 4
+dec b
+dec c
+jnz 1 -4
+EOS
+
+  instrs = loop2.split(/\n/).map { |i| parse(i) }
+  [1, 2].each do |c|
+    regarr = [0, 0, c, 0]
+    print regarr.inspect, " -> "
+    regarr = run(instrs, regarr)
+    print regarr.inspect, "\n"
+  end
+
+  puts "Analyzing both loops"
+  p loop1+loop2
+  instrs = (loop1 + loop2).split(/\n/).map { |i| parse(i) }
+  p instrs
+  20.times do |a|
+    regarr = [a, 42, 43, 45]
+    #  regarr = [a, 0, 0, 0]
+    print regarr.inspect, " -> "
+    regarr = run(instrs, regarr)
+    print regarr.inspect, "\n"
+  end
+end
+
+instrs = File.readlines(ARGV[0] || "input-optimized.txt").map { |i| parse(i) }
 
 regarr = [0, 0, 0, 0]
 
@@ -202,25 +279,32 @@ time_it do
   puts "Solution to part A:"
   a = 0
   loop do
-    puts "A #{a}" if 0 == a % 100
+    puts "A #{a}" if 0 == a % 1
     regarr = [a, 0, 0, 0]
     success_count = 0
     last_out = 1
     # if block returns true then macihne stops
     run(instrs, regarr) do |out|
 #      puts "OUT #{out}"
+#      print "#{out} "
+#      next false
+#      print "#{out} (#{success_count}) "
       next true if out != 0 && out != 1
       next true if out == last_out
       last_out = out
       success_count += 1
-      success_count > 10
+      r = success_count > 10
+#      puts "R #{r}"
+      r
     end
     break if success_count > 10
     a += 1
   end
+  puts "SOLVED"
   puts a
 end
 
+exit
 puts
 time_it do
   regarr[0] = 12
