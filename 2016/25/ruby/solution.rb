@@ -29,8 +29,8 @@ def parse(string_instr)
     [:tgl, * parse_arg($1), nil, nil]
   when /cpy (\S+) (\S+)/
     [:cpy, * parse_arg($1), * parse_arg($2)]
-  when /and (\S+) (\S+)/
-    [:and, * parse_arg($1), * parse_arg($2)]
+  when /mod (\S+) (\S+)/
+    [:mod, * parse_arg($1), * parse_arg($2)]
   when /div (\S+) (\S+)/
     [:div, * parse_arg($1), * parse_arg($2)]
   when /jnz (\S+) (\S+)/
@@ -113,7 +113,7 @@ def run(instrs, regarr)
 
   loop do
     instr = instrs[ip]
-    puts "#{ip}: #{regarr}; #{timer}" if 0 == timer % 1#000000
+#    puts "#{ip}: #{regarr}; #{timer}" if 0 == timer % 1000000
 
     next_ip = ip + 1
     timer += 1
@@ -129,8 +129,8 @@ def run(instrs, regarr)
       regarr[r] -= 1
     when :out
       r = instr[2]
-      if yield regarr[r] # regarr[2]
-#        puts "BREAK"
+      if yield regarr[r] # Using `regarr[2]` here was a really costly mistake
+        # puts "BREAK"
         break
       end
 
@@ -166,10 +166,10 @@ def run(instrs, regarr)
         # invalid instruction, skip it
       end
 
-    when :and
+    when :mod
       _opcode, src_isreg, src_num, dest_isreg, dest_num = * instr
       if dest_isreg
-        regarr[dest_num] &= src_isreg ? regarr[src_num] : src_num
+        regarr[dest_num] %= src_isreg ? regarr[src_num] : src_num
       else
         # invalid instruction, skip it
       end
@@ -258,57 +258,39 @@ EOS
   end
 
   puts "Analyzing both loops"
-  p loop1+loop2
   instrs = (loop1 + loop2).split(/\n/).map { |i| parse(i) }
-  p instrs
   20.times do |a|
     regarr = [a, 42, 43, 45]
-    #  regarr = [a, 0, 0, 0]
     print regarr.inspect, " -> "
     regarr = run(instrs, regarr)
     print regarr.inspect, "\n"
   end
 end
 
+# used this to help me make input-optimized.txt
+# analyze
+
 instrs = File.readlines(ARGV[0] || "input-optimized.txt").map { |i| parse(i) }
 
-regarr = [0, 0, 0, 0]
-
-p instrs
+SUCCESS_LIMIT = 16
 time_it do
   puts "Solution to part A:"
   a = 0
   loop do
-    puts "A #{a}" if 0 == a % 1
     regarr = [a, 0, 0, 0]
     success_count = 0
-    last_out = 1
-    # if block returns true then macihne stops
+    last_out = nil
+    # if block returns true then the machine stops
     run(instrs, regarr) do |out|
-#      puts "OUT #{out}"
-#      print "#{out} "
-#      next false
-#      print "#{out} (#{success_count}) "
       next true if out != 0 && out != 1
       next true if out == last_out
       last_out = out
       success_count += 1
-      r = success_count > 10
-#      puts "R #{r}"
-      r
+      success_count > SUCCESS_LIMIT
     end
-    break if success_count > 10
+    break if success_count > SUCCESS_LIMIT
     a += 1
   end
   puts "SOLVED"
   puts a
-end
-
-exit
-puts
-time_it do
-  regarr[0] = 12
-  puts "Solution to part B:"
-
-  puts bregs[0]
 end

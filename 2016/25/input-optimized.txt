@@ -9,7 +9,7 @@ jnz c -5
 cpy d a
 jnz 0 0
 cpy a b
-and 1 b
+mod 2 b
 div 2 a
 cpy 0 c
 jnz 0 0
