@@ -45,6 +45,30 @@ class Intcode
       when 4
         nargs = 1
         @stdout.puts(read(0))
+      # JUMP-IF-TRUE
+      when 5
+        nargs = 2
+        if read(0) != 0
+          @ip = read(1)
+          nargs = -1
+        end
+      # JUMP-IF-FALSE
+      when 6
+        nargs = 2
+        if read(0).zero?
+          @ip = read(1)
+          nargs = -1
+        end
+      # LESS-THAN
+      when 7
+        nargs = 3
+        value = read(0) < read(1) ? 1 : 0
+        write(2, value)
+      # EQUALS
+      when 8
+        nargs = 3
+        value = read(0) == read(1) ? 1 : 0
+        write(2, value)
       when 99
         break
       else
@@ -91,5 +115,8 @@ end
 if $0 == __FILE__
   puts "Part 1"
   ic = Intcode.new(Intcode.read_file("input.txt"), StringIO.new("1", "r"))
+  ic.compute
+  puts "Part 2"
+  ic = Intcode.new(Intcode.read_file("input.txt"), StringIO.new("5", "r"))
   ic.compute
 end
