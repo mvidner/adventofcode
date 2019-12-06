@@ -1,0 +1,4 @@
+#!/bin/bash
+echo "digraph g {"
+sed 's/\(.*\))\(.*\)/  "\1" -> "\2";/'
+echo "}"
