@@ -14,9 +14,11 @@ J)K
 K)L
 EOS
 
-describe "#total_num_orbits" do
-  it "works for the example" do
-    pairs = pairs_from_string(lines)
-    expect(total_num_orbits(pairs)).to eq 42
+describe UniversalOrbitMap do
+  describe "#total_num_orbits" do
+    it "works for the example" do
+      uom = described_class.new(lines)
+      expect(uom.total_num_orbits).to eq 42
+    end
   end
 end
