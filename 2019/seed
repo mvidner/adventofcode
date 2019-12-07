@@ -11,6 +11,6 @@ mkdir -p $DIR/ruby
 cp 01/Makefile $DIR
 echo "#!/usr/bin/env ruby" > $DIR/ruby/solution.rb
 
-wget "${COOKIES[@]}" --output-document=$DIR/$NUM.html http://adventofcode.com/2019/day/$NUM
-wget "${COOKIES[@]}" --output-document=$DIR/input.txt http://adventofcode.com/2019/day/$NUM/input
+wget "${COOKIES[@]}" --output-document=$DIR/$NUM.html https://adventofcode.com/2019/day/$NUM
+wget "${COOKIES[@]}" --output-document=$DIR/input.txt https://adventofcode.com/2019/day/$NUM/input
 git add $DIR
