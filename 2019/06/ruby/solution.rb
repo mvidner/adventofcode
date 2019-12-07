@@ -24,6 +24,18 @@ class UniversalOrbitMap
     orbits.values.inject(0, &:+)
   end
 
+  def orbital_transfers(a, b)
+    pa = sun_path(centers[a])
+    pb = sun_path(centers[b])
+    while pa.last == pb.last
+      pa.pop
+      pb.pop
+    end
+    pa.size + pb.size
+  end
+
+  private
+
   def compute_orbits(moon, orbits)
     return if orbits.key?(moon)
 
@@ -36,10 +48,25 @@ class UniversalOrbitMap
       orbits[moon] = 0
     end
   end
+
+  # [moon, planet, ..., sun]
+  def sun_path(moon)
+    path = []
+    loop do
+      path << moon
+      planet = centers[moon]
+      break if planet.nil?
+      moon = planet
+    end
+
+    path
+  end
 end
 
 if $PROGRAM_NAME == __FILE__
   uom = UniversalOrbitMap.new(File.read("input.txt"))
   puts "Part 1"
   puts uom.total_num_orbits
+  puts "Part 2"
+  puts uom.orbital_transfers("YOU", "SAN")
 end
