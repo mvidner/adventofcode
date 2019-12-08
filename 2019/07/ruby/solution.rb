@@ -1,19 +1,21 @@
 #!/usr/bin/env ruby
-require "stringio"
 
 # Intcode virtual machine
+#
+# The input and output are done by pushing and popping integers on
+# the input and output queues
 class Intcode
   # @return [Array<Integer>] memory
   attr_accessor :m
-  # @return [IO]
-  attr_reader :stdin
-  # @return [IO]
-  attr_reader :stdout
+  # @return [Queue] input queue
+  attr_reader :inq
+  # @return [Queue] output queue
+  attr_reader :outq
 
-  def initialize(mem, stdin = $stdin, stdout = $stdout)
+  def initialize(mem, inq, outq)
     @m = mem
-    @stdin = stdin
-    @stdout = stdout
+    @inq = inq
+    @outq = outq
     @ip = 0
   end
 
@@ -39,11 +41,11 @@ class Intcode
       # INPUT
       when 3
         nargs = 1
-        write(0, Integer(@stdin.readline.chomp))
+        write(0, inq.pop)
       # OUTPUT
       when 4
         nargs = 1
-        @stdout.puts(read(0))
+        outq.push(read(0))
       # JUMP-IF-TRUE
       when 5
         nargs = 2
@@ -120,12 +122,13 @@ class AmplifierCircuit
 
   def run(input)
     @phases.each do |ph|
-      output_io = StringIO.new
-      ic = Intcode.new(@progmem.dup,
-                       StringIO.new("#{ph}\n#{input}\n"),
-                       output_io)
+      inq = Queue.new
+      inq.push(ph)
+      inq.push(input)
+      outq = Queue.new
+      ic = Intcode.new(@progmem.dup, inq, outq)
       ic.compute
-      input = Integer(output_io.string)
+      input = outq.pop
     end
 
     input
