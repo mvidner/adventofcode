@@ -58,10 +58,66 @@ class MonitoringStation
     end
     [[bestx, besty], best]
   end
+
+  PIHALF = Math.atan2(1, 0)
+
+  # return [azimuth, manhattan distance]
+  def zap_azimuth(fromx, fromy, x, y)
+    dy = y - fromy
+    dx = x - fromx
+    a = Math.atan2(dy, dx)
+    az = PIHALF - a
+    az += 2 * Math::PI if az < 0
+    [az, dy.abs + dx.abs]
+  end
+
+  # @return array of pairs
+  def zap_order(fromx, fromy)
+    result = []
+
+    pairs = Array.new(h) do |y|
+      Array.new(w) do |x|
+        [x, y, zap_azimuth(fromx, fromy, x, y)]
+      end
+    end.flatten(1)
+pp pairs
+    zap_at = {}
+    pairs.each do |x, y, polar|
+      az, dist = *polar
+      next if !map[y][x] || dist == 0
+      zap_at[az] ||= []
+      zap_at[az] << [x, y, dist] # add one triplet
+    end
+    zap_at.each_value do |triplets|
+      triplets.sort_by!(&:last) # distance
+    end
+    puts "distance sorted"
+pp zap_at
+
+    azs = zap_at.keys.sort
+    loop do
+      azs.each do |az|
+        triplets = zap_at[az]
+        next if triplets.nil?
+
+        t = triplets.shift
+        result << [t[0], t[1], t[2], az]
+        zap_at.delete(az) if triplets.empty?
+        return result if zap_at.empty?
+      end
+    end
+  end
 end
 
 if $PROGRAM_NAME == __FILE__
   ms = MonitoringStation.new(File.read("input.txt"))
   puts "Part 1"
-  p ms.best_station
+  best = ms.best_station
+  puts best
+
+  puts "Part 2"
+  order = ms.zap_order(best.first[0], best.first[1])
+pp order
+  xy =  order[199]
+  puts 100 * xy[0] + xy[1]
 end
