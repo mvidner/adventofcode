@@ -1,0 +1,17 @@
+#!/bin/bash -x
+DIR=${1-$(date +%d)}
+if test -d $DIR; then
+  echo $DIR exists already
+#  exit
+fi
+NUM=${DIR#0}
+
+COOKIES=(--no-cookies --header "Cookie: session=$(cat cookie)")
+mkdir -p "$DIR"/ruby
+cp 01/Makefile "$DIR"
+echo "#!/usr/bin/env ruby" > "$DIR"/ruby/solution.rb
+
+YEAR="$(basename $(dirname $(realpath "$0")))"
+wget "${COOKIES[@]}" --output-document="$DIR"/"$NUM".html https://adventofcode.com/"$YEAR"/day/"$NUM"
+wget "${COOKIES[@]}" --output-document="$DIR"/input.txt https://adventofcode.com/"$YEAR"/day/"$NUM"/input
+git add "$DIR"
