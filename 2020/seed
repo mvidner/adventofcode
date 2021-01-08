@@ -9,7 +9,9 @@ NUM=${DIR#0}
 COOKIES=(--no-cookies --header "Cookie: session=$(cat cookie)")
 mkdir -p "$DIR"/ruby
 cp 01/Makefile "$DIR"
-echo "#!/usr/bin/env ruby" > "$DIR"/ruby/solution.rb
+if [ ! -f "$DIR"/ruby/solution.rb ]; then
+    echo "#!/usr/bin/env ruby" > "$DIR"/ruby/solution.rb
+fi
 
 YEAR="$(basename $(dirname $(realpath "$0")))"
 wget "${COOKIES[@]}" --output-document="$DIR"/"$NUM".html https://adventofcode.com/"$YEAR"/day/"$NUM"
