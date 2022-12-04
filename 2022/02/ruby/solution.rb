@@ -28,6 +28,20 @@ def round_score(abc, xyz)
   my_points(mine, other) + bonus[mine]
 end
 
+def round_score_official(abc, xyz)
+  other = { "A" => "R", "B" => "P", "C" => "S" }[abc]
+  # X Y Z is Lose Draw Win
+  wanted = { "X" => -1, "Y" => 0, "Z" => 1 }[xyz]
+  mine = ["R", "P", "S"].find do |m|
+    i_win(m, other) == wanted
+  end
+
+  bonus = { "R" => 1, "P" => 2, "S" => 3 }
+
+  my_points(mine, other) + bonus[mine]
+end
 
 total_score = data.map { |round| round_score(round[0], round[1]) }.sum
 puts "Total score: #{total_score}"
+official_total_score = data.map { |round| round_score_official(round[0], round[1]) }.sum
+puts "Official Total score: #{official_total_score}"
