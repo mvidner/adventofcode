@@ -11,8 +11,8 @@ end
 
 contained = data.find_all do |line|
   as, bs = line.split /,/
-  ar = Range.new(* as.split(/-/))
-  br = Range.new(* bs.split(/-/))
+  ar = Range.new(* as.split(/-/).map(&:to_i))
+  br = Range.new(* bs.split(/-/).map(&:to_i))
 
   range_cover?(ar, br) || range_cover?(br, ar)
 end
