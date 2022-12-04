@@ -2,7 +2,7 @@
 require "set"
 
 text = File.read(ARGV[0] || "input.txt")
-data = text.lines
+data = text.lines.map(&:chomp)
 
 def priority(letter)
   if ("a".."z").include?(letter)
@@ -15,7 +15,6 @@ def priority(letter)
 end
 
 priorities = data.map do |rucksack|
-  rucksack = rucksack.chomp
   len = rucksack.length
   first = rucksack[0, len/2]
   second = rucksack[len/2, len/2]
@@ -29,3 +28,15 @@ priorities = data.map do |rucksack|
 end
 
 puts "Sum of priorities: #{priorities.sum}"
+
+group_priorities = data.each_slice(3).map do |a, b, c|
+  aset = a.split(//).to_set
+  bset = b.split(//).to_set
+  cset = c.split(//).to_set
+  common = aset & bset & cset
+  raise unless common.size == 1
+
+  priority(common.first)
+end
+
+puts "Sum of group badge priorities: #{group_priorities.sum}"
