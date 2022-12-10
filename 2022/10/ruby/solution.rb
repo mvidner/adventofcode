@@ -18,26 +18,28 @@ class CRT
   def do1(insn)
     case insn
     when "noop"
-      @cycles += 1
+      # nothing
     when /addx (-?\d+)/
-      n = $1.to_i
-      @x += n
-      @cycles += 2
+      # first cycle: nothing
+      @cycles += 1
+      cycle_check
+
+      # second cycle
+      @x += $1.to_i
     else
       raise insn
     end
 
+    @cycles += 1
     cycle_check
   end
 
   def cycle_check
-    # round down
-    c = cycles & ~1
-    return unless c == @important_cycles.first
+    return unless cycles == @important_cycles.first
 
     @important_cycles.shift
-    strength = c * x
-    puts "#{c} * #{x} = #{strength}"
+    strength = cycles * x
+    puts "#{cycles} * #{x} = #{strength}"
     @strengths_sum += strength
   end
 end
