@@ -1,25 +1,52 @@
 #!/usr/bin/ruby
 
 class CRT
-  def initialize
-    @pixels = " " * 240
+  attr_reader :nrows
+
+  attr_reader :ncols
+
+  attr_reader :pixels
+
+  def initialize(nrows:, ncols:)
+    @nrows = nrows
+    @ncols = ncols
+
+    @pixels = " " * (nrows * ncols)
   end
 
-  def dump
-    6.times do |row|
-      puts @pixels[row*40, 40]
-    end
+  def to_s
+    @nrows.times.map do |r|
+      @pixels[r * @ncols, @ncols]
+    end.join("\n") + "\n"
   end
 
   # clock is 1 based but pixels are 0 based
   def draw(clock, sprite_pos)
-    column = (clock - 1) % 40
+    column = (clock - 1) % @ncols
     if (sprite_pos - 1 .. sprite_pos + 1).cover?(column)
       pix = "#"
     else
       pix = "."
     end
     @pixels[clock - 1] = pix
+  end
+end
+
+class SignalProbe
+  attr_reader :strengths_sum
+
+  def initialize
+    @important_cycles = [20, 60, 100, 140, 180, 220]
+    @strengths_sum  = 0
+  end
+
+  def probe(cycles, x)
+    return unless cycles == @important_cycles.first
+
+    @important_cycles.shift
+    strength = cycles * x
+    # puts "#{cycles} * #{x} = #{strength}"
+    @strengths_sum += strength
   end
 end
 
@@ -35,6 +62,8 @@ class CPU
   end
 
   def do1(insn)
+    # puts "  (#{cycles}: #{x}) #{insn}"
+
     @cycles += 1
     yield cycles, x
 
@@ -52,29 +81,23 @@ class CPU
       raise insn
     end
   end
-
-  def cycle_check
-    return unless cycles == @important_cycles.first
-
-    @important_cycles.shift
-    strength = cycles * x
-    puts "#{cycles} * #{x} = #{strength}"
-    @strengths_sum += strength
-  end
 end
 
 if $PROGRAM_NAME == __FILE__
   text = File.read(ARGV[0] || "input.txt")
   input = text.lines.map(&:chomp)
 
-  crt = CRT.new
   cpu = CPU.new
+  probe = SignalProbe.new
+  crt = CRT.new(nrows: 6, ncols: 40)
+
   input.each do |insn|
-    # puts "  (#{crt.cycles}: #{crt.x}) #{insn}"
     cpu.do1(insn) do |cycles, x|
+      probe.probe(cycles, x)
       crt.draw(cycles, x)
     end
   end
 
-  crt.dump
+  puts probe.strengths_sum
+  puts crt
 end
