@@ -16,22 +16,22 @@ class CRT
   end
 
   def do1(insn)
+    @cycles += 1
+    cycle_check
+
     case insn
     when "noop"
       # nothing
     when /addx (-?\d+)/
-      # first cycle: nothing
+      # second cycle: check _during_ it
       @cycles += 1
       cycle_check
 
-      # second cycle
+      # ... add only at its end
       @x += $1.to_i
     else
       raise insn
     end
-
-    @cycles += 1
-    cycle_check
   end
 
   def cycle_check
@@ -50,6 +50,7 @@ if $PROGRAM_NAME == __FILE__
 
   crt = CRT.new
   input.each do |insn|
+    puts "  (#{crt.cycles}: #{crt.x}) #{insn}"
     crt.do1(insn)
   end
 
