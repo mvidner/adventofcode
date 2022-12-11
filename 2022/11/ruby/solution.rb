@@ -57,7 +57,7 @@ class Monkey
 
   def new=(value)
     # puts "new=#{value}"
-    items[0] = value
+    items[0] = value % $modulo
   end
 
   def worry
@@ -67,7 +67,7 @@ class Monkey
   end
 
   def bore
-    items[0] /= 3
+    # items[0] /= 3
   end
 
   def throw
@@ -91,7 +91,7 @@ class MonkeyBusiness
     dump
 
     rounds.times do |r|
-      puts "Round #{r+1}"
+      # puts "Round #{r+1}"
       run_one
     end
   end
@@ -106,7 +106,7 @@ class MonkeyBusiness
       end
     end
 
-    dump
+    # dump
   end
 
   def dump
@@ -128,9 +128,11 @@ if $PROGRAM_NAME == __FILE__
   monkeys = monkey_texts.map do |txt|
     Monkey.parse(txt)
   end
+  $modulo = monkeys.map(&:divisible).inject(1, &:*)
+  puts "Modulo #{$modulo}"
 
   biz = MonkeyBusiness.new(monkeys)
 
-  biz.run(rounds: 20)
+  biz.run(rounds: 10000)
   puts biz.level
 end
