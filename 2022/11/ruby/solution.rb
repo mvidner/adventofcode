@@ -5,7 +5,7 @@ class Monkey
     text =~ /Starting items: (.*)/
     items = $1.split(", ").map(&:to_i)
 
-    text =~ /Operation: (.*)/
+    text =~ /Operation: new = (.*)/
     operation = $1
 
     text =~ /Test: divisible by (.*)/
@@ -56,11 +56,14 @@ class Monkey
   end
 
   def new=(value)
+    # puts "new=#{value}"
     items[0] = value
   end
 
   def worry
-    instance_eval(operation)
+    # print "#{operation}: #{old} -> "
+    self.new = instance_eval(operation)
+    # puts old
   end
 
   def bore
@@ -84,7 +87,13 @@ class MonkeyBusiness
   end
 
   def run(rounds:)
-    rounds.times { run_one }
+    puts "At the start:"
+    dump
+
+    rounds.times do |r|
+      puts "Round #{r+1}"
+      run_one
+    end
   end
 
   def run_one
@@ -96,6 +105,15 @@ class MonkeyBusiness
         monkeys[target].catch(m.throw)
       end
     end
+
+    dump
+  end
+
+  def dump
+    monkeys.each_with_index do |m, i|
+      puts "Monkey #{i}: #{m.items.inspect}"
+    end
+    puts
   end
 
   def level
