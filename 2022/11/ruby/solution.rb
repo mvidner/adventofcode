@@ -34,6 +34,15 @@ class Monkey
     @inspection_count = 0
   end
 
+  def self.modulize(factors)
+    @modulo = factors.inject(1, &:*)
+    puts "Modulo #{@modulo}"
+  end
+
+  def self.modulo
+    @modulo
+  end
+
   # Inspect an item, don't throw it yet
   # @return [Integer,nil] target monkey to throw the current item to,
   #   or nil if no items left
@@ -57,7 +66,7 @@ class Monkey
 
   def new=(value)
     # puts "new=#{value}"
-    items[0] = value % $modulo
+    items[0] = value % self.class.modulo
   end
 
   def worry
@@ -128,8 +137,7 @@ if $PROGRAM_NAME == __FILE__
   monkeys = monkey_texts.map do |txt|
     Monkey.parse(txt)
   end
-  $modulo = monkeys.map(&:divisible).inject(1, &:*)
-  puts "Modulo #{$modulo}"
+  Monkey.modulize(monkeys.map(&:divisible))
 
   biz = MonkeyBusiness.new(monkeys)
 
