@@ -15,10 +15,13 @@ class Packet
   end
 
   def <=>(other)
-    cmp2(@value, other.value)
+    a, b = @value, other.value
+    # puts "<=> #{a.inspect} #{b.inspect}"
+    cmp2(a, b)
   end
 
   def cmp2(a, b)
+    # puts "CMP2 #{a.inspect} #{b.inspect}"
     if a.nil?
       raise if b.nil?
       return -1
@@ -58,6 +61,23 @@ if $PROGRAM_NAME == __FILE__
       0
     end
   end
-
   puts sum_ok
+
+  puts "Part 2"
+
+  packets = text.gsub("\n\n", "\n").split("\n").map { |l| Packet.parse(l) }
+  # pp packets
+  # puts "GO"
+
+  div1 = Packet.new([[2]])
+  div2 = Packet.new([[6]])
+  packets << div1
+  packets << div2
+  # puts "check:"
+  # p packets[-1]
+
+  packets.sort!
+  i1 = packets.index(div1) + 1
+  i2 = packets.index(div2) + 1
+  puts "KEY #{i1*i2}"
 end
