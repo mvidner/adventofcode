@@ -80,7 +80,6 @@ class Sandfall
     while sand != prev
       sand, prev = drop_step(sand), sand
       return false if sand.y > @maxy
-      return false if sand == @source
     end
 
     set(sand, "o")
@@ -106,6 +105,7 @@ class Sandfall
     while drop
       dropped += 1
       dump
+      break if get(@source) == "o"
     end
     puts "Dropped #{dropped}"
   end
