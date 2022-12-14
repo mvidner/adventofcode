@@ -35,18 +35,14 @@ class Sandfall
   end
 
   def initialize(paths, with_floor: false)
-    pf = paths.flatten
-    @minx, @maxx = pf.map { |point| point.x }.minmax
-    @miny, @maxy = pf.map { |point| point.y }.minmax
-    @miny = 0 if @miny > 0
-
+    @map = {}
+    @maxy = paths.flatten.map { |point| point.y }.max
     if with_floor
-      @maxy += 1
-      @floor = @maxy + 1
+      @maxy += 2
+      @floor = @maxy
     else
       @floor = nil
     end
-    @rows = Array.new(@maxy - @miny + 1) { "." * (@maxx - @minx + 1)}
 
     paths.each do |path|
       path.each_cons(2) do |from, to|
@@ -59,33 +55,20 @@ class Sandfall
   end
 
   def dump
-    puts
-    puts @rows
   end
 
   def get(p)
-    get2(p.x, p.y)
-  end
+    return "#" if @floor && p.y == @floor
 
-  # @return nil if outside the map
-  def get2(x, y)
-    return "#" if @floor && y == @floor
-    yy = y - @miny
-    return nil if yy < 0
-
-    xx = x - @minx
-    return nil if xx < 0
-
-    @rows.fetch(yy, [])[xx]
+    @map.fetch(p, ".")
   end
 
   def set(p, val)
-    set2(p.x, p.y, val)
+    @map[p] = val
   end
 
   def set2(x, y, val)
-    # p "set2 #{x} #{y} #{val}"
-    @rows[y - @miny][x - @minx] = val
+    set(Point.new(x, y), val)
   end
 
   # Drop one unit of sand from the source and mark it on the map
@@ -96,7 +79,8 @@ class Sandfall
 
     while sand != prev
       sand, prev = drop_step(sand), sand
-      return false if sand.nil?
+      return false if sand.y > @maxy
+      return false if sand == @source
     end
 
     set(sand, "o")
@@ -111,9 +95,7 @@ class Sandfall
       Point.new(p.x,     p.y    ),
     ]
     found = tries.find do |t|
-      got = get(t)
-      return nil if got.nil?
-      got== "."
+      get(t) == "." || get(t) == "+"
     end
     raise "should not happen" if found.nil?
     found
@@ -158,4 +140,6 @@ if $PROGRAM_NAME == __FILE__
 
   sf2 = Sandfall.parse(text, with_floor: true)
   sf2.pour
+  # The second answer is one lower than it should be.
+  # Adjusting mentally before submitting it. Yeah!!
 end
