@@ -22,7 +22,7 @@ class Sandfall
   #    7 ........#.
   #    8 ........#.
   #    9 #########.
-  def self.parse(text)
+  def self.parse(text, with_floor: false)
     paths = text.each_line.map do |line|
       points = line.split(" -> ").map do |point_s|
         point_s =~ /(-?\d+),(-?\d+)/
@@ -31,14 +31,21 @@ class Sandfall
       points
     end
 
-    new(paths)
+    new(paths, with_floor: with_floor)
   end
 
-  def initialize(paths)
+  def initialize(paths, with_floor: false)
     pf = paths.flatten
     @minx, @maxx = pf.map { |point| point.x }.minmax
     @miny, @maxy = pf.map { |point| point.y }.minmax
     @miny = 0 if @miny > 0
+
+    if with_floor
+      @maxy += 1
+      @floor = @maxy + 1
+    else
+      @floor = nil
+    end
     @rows = Array.new(@maxy - @miny + 1) { "." * (@maxx - @minx + 1)}
 
     paths.each do |path|
@@ -62,6 +69,7 @@ class Sandfall
 
   # @return nil if outside the map
   def get2(x, y)
+    return "#" if @floor && y == @floor
     yy = y - @miny
     return nil if yy < 0
 
@@ -147,4 +155,7 @@ if $PROGRAM_NAME == __FILE__
   text = File.read(ARGV[0] || "input.txt")
   sf = Sandfall.parse(text)
   sf.pour
+
+  sf2 = Sandfall.parse(text, with_floor: true)
+  sf2.pour
 end
