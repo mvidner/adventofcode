@@ -1,18 +1,40 @@
 #!/usr/bin/env ruby
 
-Valve = Struct.new(:rate, :tunnels) do
-  PATTERN = /Valve (\S+) has flow rate=(\d+); tunnels? leads? to valves? (\S+)/
+Valve = Struct.new(:name, :rate, :tunnels) do
+  PATTERN = /Valve (\S+) has flow rate=(\d+); tunnels? leads? to valves? (.*)/
   def self.parse(line)
     line =~ PATTERN or raise line
     name = $1
     rate = $2.to_i # forgot it AGAIN
-    tunnels = $3.split(",")
-    new(rate, tunnels)
+    tunnels = $3.split(", ")
+    new(name, rate, tunnels)
+  end
+end
+
+class Graph
+  # @return [Hash{String => Valve}]
+  attr_reader :valves
+  def initialize(valves)
+    @valves = {}
+    valves.each { |v| @valves[v.name] = v }
+  end
+
+  def to_dot
+    dot = "digraph g {\n"
+    valves.each do |_k, v|
+      dot << "  #{v.name}[label=\"#{v.name} #{v.rate}\"];\n"
+      v.tunnels.each do |t|
+        dot << "    #{v.name} -> #{t};\n"
+      end
+    end
+    dot << "}\n"
+    dot
   end
 end
 
 if $PROGRAM_NAME == __FILE__
-  text = File.read(ARGV[0] || "input.txt")
+  arg = ARGV[0] || "input.txt"
+  text = File.read(arg)
 
   # PLAN so far:
   # Walk around the graph, visiting valued nodes.
@@ -33,4 +55,7 @@ if $PROGRAM_NAME == __FILE__
 
   # PLAN so far: Yay, MUCH better, only 15 working valves, (15!) permutations
   # will surely work... Oh [censored] 1307674368000 (1.3 tera) is still too many
+
+  g = Graph.new(valves)
+  File.write(arg + ".dot", g.to_dot)
 end
