@@ -1,32 +1,22 @@
-digraph g {
+graph g {
   AA[label="AA 0"];
-    AA -> DD;
-    AA -> II;
-    AA -> BB;
+    AA -- DD;
+    AA -- II;
+    AA -- BB;
   BB[label="BB 13"];
-    BB -> CC;
-    BB -> AA;
+    BB -- CC;
   CC[label="CC 2"];
-    CC -> DD;
-    CC -> BB;
+    CC -- DD;
   DD[label="DD 20"];
-    DD -> CC;
-    DD -> AA;
-    DD -> EE;
+    DD -- EE;
   EE[label="EE 3"];
-    EE -> FF;
-    EE -> DD;
+    EE -- FF;
   FF[label="FF 0"];
-    FF -> EE;
-    FF -> GG;
+    FF -- GG;
   GG[label="GG 0"];
-    GG -> FF;
-    GG -> HH;
+    GG -- HH;
   HH[label="HH 22"];
-    HH -> GG;
   II[label="II 0"];
-    II -> AA;
-    II -> JJ;
+    II -- JJ;
   JJ[label="JJ 21"];
-    JJ -> II;
 }

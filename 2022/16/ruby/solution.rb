@@ -20,11 +20,11 @@ class Graph
   end
 
   def to_dot
-    dot = "digraph g {\n"
+    dot = "graph g {\n"
     valves.each do |_k, v|
       dot << "  #{v.name}[label=\"#{v.name} #{v.rate}\"];\n"
       v.tunnels.each do |t|
-        dot << "    #{v.name} -> #{t};\n"
+        dot << "    #{v.name} -- #{t};\n" if v.name <= t
       end
     end
     dot << "}\n"
