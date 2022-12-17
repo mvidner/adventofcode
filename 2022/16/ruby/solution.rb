@@ -23,6 +23,45 @@ class Graph
   end
 
   def prune_zero_vertices
+    # first disconnect the zeros...
+    valves.each do |k, v|
+      next if v.rate > 0
+
+      p v
+      case v.tunnels.size
+      when 1
+        # leaf zero
+        v2 = valves[v.tunnels[0].first]
+        v2.tunnels.reject! { |d, _len| d == k }
+
+        v.tunnels = []
+      when 2
+        puts "pair"
+        v2 = valves[v.tunnels[0].first]
+        v3 = valves[v.tunnels[1].first]
+
+        p v2
+        p v3
+        # t2 is a pair, mutate it in place
+        t2 = v2.tunnels.find { |t| t.first == k }
+        t3 = v3.tunnels.find { |t| t.first == k }
+        p t2
+        p t3
+        new_len = t2.last + t3.last
+
+        t2[0] = v3.name
+        t2[1] = new_len
+        t3[0] = v2.name
+        t3[1] = new_len
+
+        v.tunnels = []
+      end
+    end
+
+    # ... then do a second pass of eliminating them
+    valves.reject! do |_k, v|
+      v.tunnels.empty?
+    end
   end
 
   def to_dot
@@ -63,5 +102,6 @@ if $PROGRAM_NAME == __FILE__
   # will surely work... Oh [censored] 1307674368000 (1.3 tera) is still too many
 
   g = Graph.new(valves)
+  g.prune_zero_vertices
   File.write(arg + ".dot", g.to_dot)
 end

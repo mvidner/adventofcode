@@ -1,7 +1,7 @@
 graph g {
   AA[label="AA 0"];
     AA -- DD [label="1"];
-    AA -- II [label="1"];
+    AA -- JJ [label="2"];
     AA -- BB [label="1"];
   BB[label="BB 13"];
     BB -- CC [label="1"];
@@ -10,13 +10,7 @@ graph g {
   DD[label="DD 20"];
     DD -- EE [label="1"];
   EE[label="EE 3"];
-    EE -- FF [label="1"];
-  FF[label="FF 0"];
-    FF -- GG [label="1"];
-  GG[label="GG 0"];
-    GG -- HH [label="1"];
+    EE -- HH [label="3"];
   HH[label="HH 22"];
-  II[label="II 0"];
-    II -- JJ [label="1"];
   JJ[label="JJ 21"];
 }
