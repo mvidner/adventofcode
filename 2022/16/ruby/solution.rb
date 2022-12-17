@@ -1,12 +1,15 @@
 #!/usr/bin/env ruby
 
+# name [String]
+# rate [Integer]
+# tunnels [Array<Array(String,Integer)>] pairs destination, distance
 Valve = Struct.new(:name, :rate, :tunnels) do
   PATTERN = /Valve (\S+) has flow rate=(\d+); tunnels? leads? to valves? (.*)/
   def self.parse(line)
     line =~ PATTERN or raise line
     name = $1
     rate = $2.to_i # forgot it AGAIN
-    tunnels = $3.split(", ")
+    tunnels = $3.split(", ").map { |dest| [dest, 1] }
     new(name, rate, tunnels)
   end
 end
@@ -19,12 +22,15 @@ class Graph
     valves.each { |v| @valves[v.name] = v }
   end
 
+  def prune_zero_vertices
+  end
+
   def to_dot
     dot = "graph g {\n"
     valves.each do |_k, v|
       dot << "  #{v.name}[label=\"#{v.name} #{v.rate}\"];\n"
-      v.tunnels.each do |t|
-        dot << "    #{v.name} -- #{t};\n" if v.name <= t
+      v.tunnels.each do |v2, dist|
+        dot << "    #{v.name} -- #{v2} [label=\"#{dist}\"];\n" if v.name <= v2
       end
     end
     dot << "}\n"
