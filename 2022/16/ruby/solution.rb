@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+require "set"
 
 # name [String]
 # rate [Integer]
@@ -97,12 +98,67 @@ class Graph
     values
   end
 
+  def complete
+    valves.each do |k, _v|
+      puts "From #{k}"
+      add_tunnels_from(k)
+    end
+  end
+
   def add_tunnels_from(start_name)
     # nothing to do here?
     return if valves[start_name].tunnels.size == valves.size - 1
 
-    # TODO: BFS, keep a 'visited' set of names, end when size matches
+    # from start_name
+    # String name -> Integer length
+    # does not contain self (start_name)
+    direct_lengths = { start_name => 0 } # TODO remove before assigning back
+
+    olds = [].to_set
+    currents = [start_name].to_set
+
+    loop do
+      news = wave(olds, currents) do |cur|
+        valves[cur].tunnels.map do |dest, len|
+          v2 = valves[dest]
+
+          new_len = direct_lengths[cur] + len
+          if !direct_lengths[dest] || direct_lengths[dest] > new_len
+            direct_lengths[dest] = new_len
+          end
+
+          dest
+        end
+      end
+      # print "New: "
+      # p news
+      # print "Direct: "
+      # p direct_lengths
+
+      break if direct_lengths.size == valves.size
+
+      olds = olds | currents
+      currents = news
+    end
+    p direct_lengths
+    direct_lengths.delete(start_name)
+    valves[start_name].tunnels = direct_lengths.map { |dest, len| [dest, len] }
   end
+
+  # olds currents and news are sets
+  # go takes one current and returns the ones reachable from it
+  # return news
+  def wave(olds, currents, &go)
+    news = Set.new
+    currents.each do |cur|
+      candidates = go.call(cur)
+      candidates.each do |can|
+        news << can unless olds.include?(can) || currents.include?(can)
+      end
+    end
+    news
+  end
+
 end
 
 if $PROGRAM_NAME == __FILE__
@@ -116,5 +172,7 @@ if $PROGRAM_NAME == __FILE__
   g.prune_zero_vertices
   File.write(arg + ".dot", g.to_dot)
 
-  g.appraise_vertices("AA", 30)
+  # g.appraise_vertices("AA", 30)
+  g.complete
+  pp g
 end
