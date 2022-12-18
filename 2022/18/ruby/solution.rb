@@ -132,6 +132,35 @@ class Droplet
       puts
     end
   end
+
+  def outer_surface_by(f1, f2)
+    layers = {}
+    cubes.each do |c|
+      k1 = c.public_send(f1)
+      k2 = c.public_send(f2)
+      layers[k1] ||= {}
+      layers[k1][k2] ||= [].to_set
+      layers[k1][k2] << c
+    end
+
+    osb = 0
+    layers.each do |_k1, inner|
+      inner.each do |_k2, values|
+        osb +=2 unless values.empty?
+      end
+    end
+    osb
+  end
+
+  def outer_surface
+    oss = [
+      outer_surface_by(:x, :y),
+      outer_surface_by(:y, :z),
+      outer_surface_by(:x, :z)
+    ]
+    p oss
+    oss.sum
+  end
 end
 
 if $PROGRAM_NAME == __FILE__
@@ -142,7 +171,8 @@ if $PROGRAM_NAME == __FILE__
   end
 
   droplet = Droplet.new(cubes)
-  droplet.stats!
+  # droplet.stats!
   droplet.draw
   puts "Surface: #{droplet.surface}"
+  puts "Outer surface: #{droplet.outer_surface}"
 end
