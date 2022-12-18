@@ -33,8 +33,8 @@ class Droplet
     loop do
       olds_currents = olds | currents
 
-      puts "WAVE olds: #{olds}"
-      puts "WAVE curs: #{currents}"
+      # puts "WAVE olds: #{olds}"
+      # puts "WAVE curs: #{currents}"
       news = remaining.take(1)
       puts "WAVE news:"
       pp news
@@ -43,13 +43,27 @@ class Droplet
 
       news.each do |n|
         puts "n: #{n}"
-        touching = NEIGHBORS.count do |delta|
-          olds_currents.include?(n.neighbor(delta))
+        all_neighbors = NEIGHBORS.map do |delta|
+          n.neighbor(delta)
         end
+        solids, airs = all_neighbors.partition { |c| olds_currents.include?(c) }
+
+        touching = solids.size
         puts "touching: #{touching}"
         ds = 6 - 2 * touching
         puts "ds: #{ds}"
         surface += ds
+
+        airs.each do |a|
+          air_neighbors = NEIGHBORS.map do |delta|
+            a.neighbor(delta)
+          end
+
+          if air_neighbors.all? { |an| olds_currents.include?(an) || news.include?(an)}
+            puts "POCKET: #{a}"
+            surface -= 6
+          end
+        end
       end
       puts "Surface now: #{surface}"
       puts
