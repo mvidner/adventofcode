@@ -89,6 +89,49 @@ class Droplet
     end
     news
   end
+
+  def stats!
+    [:x, :y, :z].each do |field|
+      stats_by(field)
+    end
+  end
+
+  def stats_by(field)
+    layers = {}
+    cubes.each do |c|
+      key = c.public_send(field)
+      layers[key] ||= [].to_set
+      layers[key] << c
+    end
+
+    puts "STATS by #{field}"
+    pp layers.map { |l, vals| [l, vals.size] }.sort.to_h
+    layers
+  end
+
+  def draw
+    return if cubes.size == 13 # sample
+    puts "DRAWING:"
+
+    layers = stats_by(:z)
+    (0..21).each do |z|
+      puts "Z #{z}"
+      rows = 22.times.map do |y|
+        void = y % 5 == 0 ? "." : " "
+        22.times.map do |x|
+          x % 5 == 0 ? "." : void
+        end.join
+      end
+      layers[z].each { |c| rows[c.y][c.x] = "@" }
+
+      xs = (0..21).map { |x| format("%2d", x) }
+      puts xs.map { |s| s[0] }.join
+      puts xs.map { |s| s[1] }.join
+
+      rows.each_with_index { |r, i| puts "#{r} #{i}" }
+      puts
+    end
+  end
 end
 
 if $PROGRAM_NAME == __FILE__
@@ -99,5 +142,7 @@ if $PROGRAM_NAME == __FILE__
   end
 
   droplet = Droplet.new(cubes)
+  droplet.stats!
+  droplet.draw
   puts "Surface: #{droplet.surface}"
 end
