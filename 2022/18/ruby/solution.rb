@@ -110,7 +110,6 @@ class Droplet
   end
 
   def draw
-    return if cubes.size == 13 # sample
     puts "DRAWING:"
 
     layers = stats_by(:z)
@@ -122,7 +121,7 @@ class Droplet
           x % 5 == 0 ? "." : void
         end.join
       end
-      layers[z].each { |c| rows[c.y][c.x] = "@" }
+      layers.fetch(z, []).each { |c| rows[c.y][c.x] = "@" }
 
       xs = (0..21).map { |x| format("%2d", x) }
       puts xs.map { |s| s[0] }.join
@@ -134,6 +133,8 @@ class Droplet
   end
 
   def outer_surface_by(f1, f2)
+    puts
+    puts "BY #{f1} #{f2}"
     layers = {}
     cubes.each do |c|
       k1 = c.public_send(f1)
@@ -144,8 +145,9 @@ class Droplet
     end
 
     osb = 0
-    layers.each do |_k1, inner|
-      inner.each do |_k2, values|
+    layers.sort.each do |k1, inner|
+      inner.sort.each do |k2, values|
+        puts "#{f1}#{k1} #{f2}#{k2} #{values}"
         osb +=2 unless values.empty?
       end
     end
@@ -173,6 +175,6 @@ if $PROGRAM_NAME == __FILE__
   droplet = Droplet.new(cubes)
   # droplet.stats!
   droplet.draw
-  puts "Surface: #{droplet.surface}"
+  # puts "Surface: #{droplet.surface}"
   puts "Outer surface: #{droplet.outer_surface}"
 end
