@@ -9,8 +9,12 @@ end
 
 class Droplet
   attr_reader :cubes
+
+  attr_reader :outside
+
   def initialize(cubes)
     @cubes = cubes.to_set
+    @outside = [].to_set
   end
 
   NEIGHBORS = [
@@ -36,37 +40,26 @@ class Droplet
       # puts "WAVE olds: #{olds}"
       # puts "WAVE curs: #{currents}"
       news = remaining.take(1)
-      puts "WAVE news:"
-      pp news
+      # puts "WAVE news:"
+      # pp news
 
       break if news.empty?
 
       news.each do |n|
-        puts "n: #{n}"
+        # puts "n: #{n}"
         all_neighbors = NEIGHBORS.map do |delta|
           n.neighbor(delta)
         end
         solids, airs = all_neighbors.partition { |c| olds_currents.include?(c) }
 
         touching = solids.size
-        puts "touching: #{touching}"
+        # puts "touching: #{touching}"
         ds = 6 - 2 * touching
-        puts "ds: #{ds}"
+        # puts "ds: #{ds}"
         surface += ds
-
-        airs.each do |a|
-          air_neighbors = NEIGHBORS.map do |delta|
-            a.neighbor(delta)
-          end
-
-          if air_neighbors.all? { |an| olds_currents.include?(an) || news.include?(an)}
-            puts "POCKET: #{a}"
-            surface -= 6
-          end
-        end
       end
-      puts "Surface now: #{surface}"
-      puts
+      # puts "Surface now: #{surface}"
+      # puts
 
       olds = olds_currents
       currents = news
@@ -132,36 +125,52 @@ class Droplet
     end
   end
 
-  def outer_surface_by(f1, f2)
-    puts
-    puts "BY #{f1} #{f2}"
-    layers = {}
-    cubes.each do |c|
-      k1 = c.public_send(f1)
-      k2 = c.public_send(f2)
-      layers[k1] ||= {}
-      layers[k1][k2] ||= [].to_set
-      layers[k1][k2] << c
+  def fits?(c, min, max)
+    (min.x .. max.x).include?(c.x) &&
+      (min.y .. max.y).include?(c.y) &&
+      (min.z .. max.z).include?(c.z)
+  end
+
+  def fill_outside(mins, maxs)
+    olds = @outside
+    currents = [mins]
+
+    loop do
+      # puts "WAVE olds: #{olds}"
+      # puts "WAVE curs: #{currents}"
+      news = wave(olds, currents) do |cur|
+        candidates = NEIGHBORS.map do |delta|
+          cur.neighbor(delta)
+        end
+
+        candidates.find_all do |can|
+          !cubes.include?(can) && fits?(can, mins, maxs)
+        end
+      end
+      # puts "WAVE news:"
+      # pp news
+      break if news.empty?
+
+      olds = olds | currents
+      currents = news
     end
 
-    osb = 0
-    layers.sort.each do |k1, inner|
-      inner.sort.each do |k2, values|
-        puts "#{f1}#{k1} #{f2}#{k2} #{values}"
-        osb +=2 unless values.empty?
-      end
-    end
-    osb
+    @outside = olds | currents
   end
 
   def outer_surface
-    oss = [
-      outer_surface_by(:x, :y),
-      outer_surface_by(:y, :z),
-      outer_surface_by(:x, :z)
-    ]
-    p oss
-    oss.sum
+    fill_outside(Cube.new(-1, -1, -1), Cube.new(22, 22, 22))
+    puts "OUTSIDE: #{@outside.size}"
+
+    os = 0
+    cubes.each do |c|
+      outside_neighbors = NEIGHBORS.count do |delta|
+        outside.include?(c.neighbor(delta))
+      end
+      # puts "#{outside_neighbors} ONs of #{c}"
+      os += outside_neighbors
+    end
+    os
   end
 end
 
@@ -174,7 +183,7 @@ if $PROGRAM_NAME == __FILE__
 
   droplet = Droplet.new(cubes)
   # droplet.stats!
-  droplet.draw
-  # puts "Surface: #{droplet.surface}"
+  # droplet.draw
+  puts "Surface: #{droplet.surface}"
   puts "Outer surface: #{droplet.outer_surface}"
 end
