@@ -27,16 +27,17 @@ class Droplet
 
     olds = [].to_set
     currents = remaining.take(1).to_set
+    remaining.subtract(currents)
     surface = 6
 
     loop do
       olds_currents = olds | currents
-      news = wave(olds, currents) do |cur|
-        candidates = NEIGHBORS.map do |delta|
-          cur.neighbor(delta)
-        end
-        candidates.find_all { |can| remaining.include?(can) }
-      end
+
+      puts "WAVE olds: #{olds}"
+      puts "WAVE curs: #{currents}"
+      news = remaining.take(1)
+      puts "WAVE news:"
+      pp news
 
       break if news.empty?
 
@@ -55,6 +56,7 @@ class Droplet
 
       olds = olds_currents
       currents = news
+      remaining.subtract(news)
     end
 
     surface
@@ -64,8 +66,6 @@ class Droplet
   # go takes one current and returns the ones reachable from it
   # return news
   def wave(olds, currents, &go)
-    puts "WAVE olds: #{olds}"
-    puts "WAVE curs: #{currents}"
     news = Set.new
     currents.each do |cur|
       candidates = go.call(cur)
@@ -73,8 +73,6 @@ class Droplet
         news << can unless olds.include?(can) || currents.include?(can)
       end
     end
-    puts "WAVE news:"
-    pp news
     news
   end
 end
