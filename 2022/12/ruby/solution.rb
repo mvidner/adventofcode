@@ -59,18 +59,30 @@ class Hill
   ]
 
   # @return [Enumerable<Pos>]
-  def reachable_from(pos)
+  def reachable_from(pos, reverse: false)
     reach = DELTAS.map { |d| pos + d }
     reach = reach.find_all { |p| (0...@h).include?(p.r) && (0...@w).include?(p.c) }
-    reach = reach.find_all { |p| at(p) <= at(pos) + 1 }
+    reach = reach.find_all do |p|
+      if reverse
+        valid_step_up(p, pos)
+      else
+        valid_step_up(pos, p)
+      end
+    end
     reach
   end
 
-  def steps_to_summit
+  def valid_step_up(from, to)
+    at(to) <= at(from) + 1
+  end
+
+  def steps_to_summit(reverse: false)
     steps = 0
+    start, end_ = @start, @end
+    start, end_ = end_, start if reverse
 
     olds = [].to_set
-    currents = [@start].to_set
+    currents = [start].to_set
 
     loop do
       steps += 1
@@ -78,20 +90,23 @@ class Hill
       puts "WAVE curs: #{currents}" if ENV["WAVE"]
 
       news = wave(olds, currents) do |cur|
-        reachable_from(cur)
+        reachable_from(cur, reverse: reverse)
       end
       if ENV["WAVE"]
         puts "WAVE news:"
         pp news
       end
 
-      return steps if news.include?(@end)
+      if reverse
+        return steps if news.any? { |n| at(n) == 0 }
+      else
+        return steps if news.include?(end_)
+      end
       break if news.empty?
 
       olds = olds | currents
       currents = news
     end
-
   end
 
 end
@@ -102,4 +117,5 @@ if $PROGRAM_NAME == __FILE__
   hill = Hill.new(text)
   hill.dump
   puts hill.steps_to_summit
+  puts hill.steps_to_summit(reverse: true)
 end
