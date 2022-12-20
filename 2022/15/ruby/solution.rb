@@ -1,5 +1,21 @@
 #!/usr/bin/env ruby
 
+begin
+  raise LoadError if ENV["PARALLEL"] == "0"
+  require "parallel"
+  puts "Parallel: ON"
+rescue LoadError
+  puts "Parallel: not installed"
+  class Parallel
+    def self.map(enum, options = {}, &block)
+      enum.map { |e| block.call(e) }
+    end
+    def self.worker_number
+      0
+    end
+  end
+end
+
 # Hmm,
 # This is a good puzzle to use unit tests because of the many+1 opportunities
 # for off-by-one errors
@@ -134,7 +150,23 @@ class Beacons
   end
 
   def find_distress(limit:)
-    limit.times do |y|
+    chunks = (0..limit).each_slice(100_000).to_a
+    puts "chunks: #{chunks.size}"
+
+    # Threads do not parallelize the CPU, only I/O blocking *facepalm*
+    # Try with Ruby 3 Ractors?
+    # parallel_opts = {in_threads: 8}
+    parallel_opts = {}
+
+    res = Parallel.map(chunks, parallel_opts) do |chunk|
+      puts "Worker #{Parallel.worker_number}, chunk #{chunk.first}..#{chunk.last}"
+      find_distress_in(chunk, limit: limit)
+    end.flatten
+    res.find { |r| r } || Point.new(-1, -1)
+  end
+
+  def find_distress_in(enum, limit:)
+    enum.map do |y|
       covered = IntegerSet.new
 
       @sensors.each do |s|
@@ -147,14 +179,14 @@ class Beacons
         # got it! find x
         if limited.ranges.size == 2
           x = limited.ranges.first.end + 1
-          return Point.new(x, y)
+          next Point.new(x, y)
         else
           raise "tough luck at #{y}"
         end
       end
-      puts "#{y}: #{limited.size}" if y % 100_000 == 0
+
+      nil
     end
-    Point.new(-1, -1)
   end
 
   def find_distress!(limit:)
@@ -168,9 +200,13 @@ if $PROGRAM_NAME == __FILE__
 
   bxz = Beacons.parse(text)
   # pp bxz
-  bxz.count_covered!(y: 10)
-  bxz.find_distress!(limit: 20)
-
-  bxz.count_covered!(y: 2_000_000)
-  bxz.find_distress!(limit: 4_000_000)
+  if ARGV[0] == "sample.txt"
+    y = 10
+    limit = 20
+  else
+    y = 2_000_000
+    limit = 4_000_000
+  end
+  bxz.count_covered!(y: y)
+  bxz.find_distress!(limit: limit)
 end
