@@ -21,11 +21,17 @@ class Mixer
   end
 
   def tracing?
-    ENV["TRACE"] == "1"
+    level = ENV["TRACE"].to_i # 0 from nil or ""
+    if @size > 10
+      level > 1
+    else
+      level > 0
+    end
   end
 
   def dump
     puts @numbers.join(", ")
+    puts
   end
 
   def move(from, delta)
@@ -55,11 +61,17 @@ class Mixer
     if delta < 0
       front1, front2 = front[0 ... from - dist], front[from .. -1]
       back1, back2 = [], back
+
+      left = front1.last
+      right = front2.first
     else # > 0
       front1, front2 = front, []
       back1, back2 = back[0 ... dist], back[dist .. -1]
+
+      left = back1.last
+      right = back2.first
     end
-    puts "Before #{front1.inspect} #{front2.inspect} #{[object].inspect} #{back1.inspect} #{back2.inspect}"
+    puts "Before #{front1.inspect} #{front2.inspect} #{[object].inspect} #{back1.inspect} #{back2.inspect}" if tracing?
 
     puts "#{object} moves between #{left} and #{right}" if tracing?
     dump if tracing?
