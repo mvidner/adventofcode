@@ -2,7 +2,7 @@
 
 class Mixer
   def initialize(numbers)
-    @numbers = numbers # things
+    @numbers = numbers.dup # things
     @size = @numbers.size
 
     # new_pos[a] == b means that
@@ -55,6 +55,16 @@ class Mixer
       # break if (0...@size).include?(want_to)
       # but NO, it cannot end at position zero, W T F ! ! 1 !
       break if want_to > 0 && want_to < @size
+
+      if want_to.abs > 2 * @size
+        delta = delta % (@size - 1)
+        # puts "new delta #{delta}"
+      end
+
+      # div, mod = delta.divmod(@size)
+      # p [div, mod]
+      # print "   "
+      # p delta.divmod(@size - 1)
 
       if delta < 0
         delta += @size - 1
@@ -114,6 +124,17 @@ if $PROGRAM_NAME == __FILE__
   mixer = Mixer.new(numbers)
   mixer.mix
   coords = [1000, 2000, 3000].map { |ofs| mixer.find_past(0, ofs) }
+  p coords
+  puts "Coordinates #{coords.sum}"
+
+  key = 811589153
+  m2 = Mixer.new(numbers.map { |n| n * key })
+  10.times do |r|
+    m2.mix
+    puts "After #{r+1} round of mixing"
+    m2.dump
+  end
+  coords = [1000, 2000, 3000].map { |ofs| m2.find_past(0, ofs) }
   p coords
   puts "Coordinates #{coords.sum}"
 end
