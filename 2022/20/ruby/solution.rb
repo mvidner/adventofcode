@@ -17,6 +17,8 @@ class Mixer
     dump if tracing?
 
     @size.times do |i|
+      puts if tracing?
+
       np = @new_pos[i]
       puts "Time #{i}, what was at #{i} is now at #{np}"
       move(np, @numbers[np])
@@ -34,47 +36,44 @@ class Mixer
 
   def dump
     puts @numbers.join(", ")
-    puts
   end
 
+  # *from* is within bounds
   def move(from, delta)
+    raise ArgumentError unless (0...@size).include?(from)
+
     if delta == 0
       puts "#{@numbers[from]} does not move:" if tracing?
       dump if tracing?
       return
     end
 
-    to = from + delta
-    puts "UNADJ #{from} + #{delta} -> #{to}"
-    # print "at #{from} by #{delta} "
-    to = to % @size
-    puts "A TO  #{from} + #{delta} -> #{to}"
-    delta2 = delta % @size
-    to2 = from + delta
-    puts "A DE  #{from} + #{delta2} -> #{to2} (#{to2 % @size})"
+    puts "#{@numbers[from]} moves ...:" if tracing?
+    want_to = nil
+    loop do
+      want_to = from + delta
+      # break if (0...@size).include?(want_to)
+      # but NO, it cannot end at position zero, W T F ! ! 1 !
+      break if want_to > 0 && want_to < @size
 
-
-    raise if to < 0
+      if delta < 0
+        delta += @size - 1
+      else
+        delta -= @size - 1
+      end
+      puts "WRAPPED, new delta #{delta}" if tracing?
+    end
+    to = want_to
     delta = to - from
-    puts "adjusted to #{delta}"
 
     dist = delta.abs
     delta1 = delta / dist # -1 or +1
-    puts "D1 #{delta1}"
+    # puts "D1 #{delta1}"
     dist.times do
       swap(from, from + delta1)
       from += delta1
     end
-
-    puts "OLD: #{@old_pos.inspect}"
-    puts "NEW: #{@new_pos.inspect}"
     dump if tracing?
-  end
-
-  # move a thing from *from* one position to the right
-  def move_right(from)
-    to = (from + 1) % size
-    swap(from, to)
   end
 
   def array_swap(arr, i, j)
@@ -84,23 +83,28 @@ class Mixer
   end
 
   def swap(i, j)
-    puts "SWAP #{i} #{j}"
+    # puts "SWAP #{i} #{j}"
+    # print "    "; dump
+
     array_swap(@numbers, i, j)
 
-    npi, npj = @new_pos[i], @new_pos[j]
     opi, opj = @old_pos[i], @old_pos[j]
-
     @new_pos[opj] = i
     @new_pos[opi] = j
-    @old_pos[npj] = i
-    @old_pos[npi] = j
-    print "    "
-    dump
+
+    @old_pos[i] = opj
+    @old_pos[j] = opi
+
+    # puts "    OLD: #{@old_pos.inspect}"
+    # puts "    NEW: #{@new_pos.inspect}"
+    # print "    "; dump
   end
 
 
-  def find_past(mark)
-    -1
+  def find_past(mark, offset)
+    i = @numbers.index(mark)
+    raise "Mark #{mark} not found" if i.nil?
+    @numbers[(i + offset) % @size]
   end
 end
 
@@ -109,7 +113,7 @@ if $PROGRAM_NAME == __FILE__
   numbers = text.lines.map(&:to_i)
   mixer = Mixer.new(numbers)
   mixer.mix
-  coords = [1000, 2000, 3000].map { |a| mixer.find_past(0) }
+  coords = [1000, 2000, 3000].map { |ofs| mixer.find_past(0, ofs) }
   p coords
   puts "Coordinates #{coords.sum}"
 end
