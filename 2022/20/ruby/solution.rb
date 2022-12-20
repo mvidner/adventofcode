@@ -2,12 +2,14 @@
 
 class Mixer
   def initialize(numbers)
-    @numbers = numbers
+    @numbers = numbers # things
     @size = @numbers.size
 
     # new_pos[a] == b means that
-    # the number that was at *a* at the start is now at *b*
+    # the thing that was at *a* at the start is now at *b*
     @new_pos = (0 ... @size).to_a
+    # thing that is now at *a* was at old_pos[a] at the start
+    @old_pos = (0 ... @size).to_a
   end
 
   def mix
@@ -42,18 +44,23 @@ class Mixer
       return
     end
 
+    print "at #{from} by #{delta} "
+    to = (from + delta) % @size
+    raise if to < 0
+    delta = to - from
+    puts "adjusted to #{delta}"
     # remember to adjust new_pos of all the in-betweens!
 
-    # front[] object back[]
+    # front[] thing back[]
 
     # delta < 0
-    # front1[] object front2[] back[]
+    # front1[] thing front2[] back[]
 
     # delta > 0
-    # front[] back1[] object back2[]
+    # front[] back1[] thing back2[]
 
     front = @numbers[0 ... from]
-    object = @numbers[from]
+    thing = @numbers[from]
     back = @numbers[from + 1 .. @size]
 
     dist = delta.abs
@@ -71,11 +78,50 @@ class Mixer
       left = back1.last
       right = back2.first
     end
-    puts "Before #{front1.inspect} #{front2.inspect} #{[object].inspect} #{back1.inspect} #{back2.inspect}" if tracing?
+    puts "Before #{front1.inspect} #{front2.inspect} #{thing} #{back1.inspect} #{back2.inspect}" if tracing?
+    puts "#{thing} moves between #{left} and #{right}" if tracing?
 
-    puts "#{object} moves between #{left} and #{right}" if tracing?
+    if delta < 0
+      save_numbers = @numbers[to]
+      @numbers[to] = @numbers[from]
+
+      save_old = @old_pos[to]
+      @old_pos[to] = @old_pos[from]
+      save_new
+      @new_pos[]
+    else
+    end
+    @new_pos[from] = to
+
+    puts "OLD: #{@old_pos.inspect}"
+    puts "NEW: #{@new_pos.inspect}"
     dump if tracing?
   end
+
+  # move a thing from *from* one position to the right
+  def move_right(from)
+    to = (from + 1) % size
+    swap(from, to)
+  end
+
+  def array_swap(arr, i, j)
+    tmp = arr[i]
+    arr[i] = arr[j]
+    arr[j] = tmp
+  end
+
+  def swap(i, j)
+    array_swap(@numbers, i, j)
+
+    npi, npj = @new_pos[i], @new_pos[j]
+    opi, opj = @old_pos[i], @old_pos[j]
+
+    @new_pos[opj] = i
+    @new_pos[opi] = j
+    @old_pos[npj] = i
+    @old_pos[npi] = j
+  end
+  
 
   def find_past(mark)
     -1
