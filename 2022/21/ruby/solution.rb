@@ -174,39 +174,35 @@ class Monkeys
         if l.known?
           # want == l + x
           want -= l.value
-          current = r
         else
           # want = x + r
           want -= r.value
-          current = l
         end
       when "-"
         if l.known?
           # want = l - x
           want = l.value - want
-          current = r
         else
           # want = x - r
           want = r.value + want
-          current = l
         end
       when "*"
         if l.known?
           # want == l * x
           if want % l.value != 0
             want = Rational(want, l.value)
+            raise Rational
           else
             want = want / l.value
           end
-          current = r
         else
           # want = x * r
           if want % r.value != 0
             want = Rational(want, r.value)
+            raise Rational
           else
             want = want / r.value
           end
-          current = l
         end
       when "/"
         if l.known?
@@ -215,9 +211,10 @@ class Monkeys
         else
           # want = x / r
           want = r.value * want
-          current = l
         end
       end
+
+      current = l.known? ? r : l
     end
   end
 end
@@ -232,7 +229,7 @@ if $PROGRAM_NAME == __FILE__
   ms2.monkeys["root"].op = "=="
   ms2.monkeys["humn"].value = :goal
   ms2.value("root")
-  pp ms2.monkeys
+  # pp ms2.monkeys
 
   # ms2.solve("root")
   # puts ms2.value("humn")
