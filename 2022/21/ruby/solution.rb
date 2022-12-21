@@ -1,7 +1,11 @@
 #!/usr/bin/env ruby
 
 # value is nil or Numeric, others are String
-Monkey = Struct.new(:name, :value, :left, :op, :right)
+Monkey = Struct.new(:name, :value, :left, :op, :right) do
+  def known?
+    value.is_a?(Numeric)
+  end
+end
 
 class Monkeys
   attr_reader :monkeys
@@ -148,6 +152,74 @@ class Monkeys
     # evaluate the newly constructed node
     value(root.right)
   end
+
+  def solve_in_place
+    value("root") # resolve known values
+    current = monkeys["root"]
+    l = monkeys[current.left]
+    r = monkeys[current.right]
+    l, r = r, l unless r.known?
+
+    want = r.value
+    current = l
+    # solve *current* for *want*
+    loop do
+      raise if current.known?
+      return want if current.value == :goal
+
+      l = monkeys[current.left]
+      r = monkeys[current.right]
+      case current.op
+      when "+"
+        if l.known?
+          # want == l + x
+          want -= l.value
+          current = r
+        else
+          # want = x + r
+          want -= r.value
+          current = l
+        end
+      when "-"
+        if l.known?
+          # want = l - x
+          want = l.value - want
+          current = r
+        else
+          # want = x - r
+          want = r.value + want
+          current = l
+        end
+      when "*"
+        if l.known?
+          # want == l * x
+          if want % l.value != 0
+            want = Rational(want, l.value)
+          else
+            want = want / l.value
+          end
+          current = r
+        else
+          # want = x * r
+          if want % r.value != 0
+            want = Rational(want, r.value)
+          else
+            want = want / r.value
+          end
+          current = l
+        end
+      when "/"
+        if l.known?
+          # want = l / x
+          raise "TODO /"
+        else
+          # want = x / r
+          want = r.value * want
+          current = l
+        end
+      end
+    end
+  end
 end
 
 if $PROGRAM_NAME == __FILE__
@@ -162,8 +234,9 @@ if $PROGRAM_NAME == __FILE__
   ms2.value("root")
   pp ms2.monkeys
 
-  ms2.solve("root")
-  puts ms2.value("humn")
-
+  # ms2.solve("root")
+  # puts ms2.value("humn")
   # idea: plug the obtained value in the original eval tree. will that help?
+
+  puts ms2.solve_in_place
 end
