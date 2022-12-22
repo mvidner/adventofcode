@@ -11,6 +11,8 @@ class Step
     [-1, 0]
   ]
 
+  FACES = [">", "v", "<", "^"]
+
   # exactly one of :angle, distance is not zero
 
   # +1 to the right/clockwise
@@ -51,7 +53,8 @@ class Step
 end
 
 # Tiles:
-# Open '.'
+# Open '.' (or ^v<> if we've been here);
+#   detect only Void and Wall to avoid being confused by trail marks
 # Wall '#'
 # Void ' '
 class Map
@@ -59,22 +62,33 @@ class Map
     @rows = text.lines.map(&:chomp)
     @dir = 0 # right
     @pos = [0, @rows[0].index(".")]
+    snail_mark
+  end
+
+  def snail_mark
+    @rows[@pos[0]][@pos[1]] = Step::FACES[@dir]
+  end
+
+  def dump
+    @rows.each do |r|
+      puts r
+    end
   end
 
   def go(steps)
     steps.each do |step|
       go1(step)
     end
-    puts "Final"
-    p [@dir, @pos]
+    # puts "Final #{[@dir, @pos].inspect}"
   end
 
   def go1(step)
-    puts
-    puts "At #{[@dir, @pos].inspect}"
-    puts "Go1 #{step.inspect}"
+    # puts
+    # puts "At #{[@dir, @pos].inspect}"
+    # puts "Go1 #{step.inspect}"
     if step.distance == 0
       @dir = (@dir + step.angle) % Step::DELTA.size
+      snail_mark
       return
       # that was easy
     end
@@ -85,15 +99,18 @@ class Map
       return if @rows[nrow][ncol] == "#"
 
       @pos = nrow, ncol
+      snail_mark
     end
   end
 
+  # Do a single step, wrapping around the edges and skipping the Void
   # return [row, col] with Open or Wall, not Void
   def wrap_step(row, col, drow, dcol)
-    puts "WS #{row}, #{col}, #{drow}, #{dcol}"
+    # puts "WS #{row}, #{col}, #{drow}, #{dcol}"
     loop do
       row = (row + drow) % @rows.size
       col = (col + dcol) % @rows[row].size
+      # stepped, possibly wrapped
       tile = @rows[row][col]
       break unless tile == " "
     end
@@ -113,5 +130,6 @@ if $PROGRAM_NAME == __FILE__
   map = Map.new(map_text)
   steps = Step.parse(path_text.chomp)
   map.go(steps)
+  map.dump
   puts "Password: #{map.password}"
 end
