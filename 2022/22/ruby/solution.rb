@@ -60,6 +60,14 @@ end
 class Map
   def initialize(text)
     @rows = text.lines.map(&:chomp)
+
+    # but they are ragged at the right! rectangularize!
+    width = @rows.map(&:size).max
+    @rows.each do |r|
+      newr = r + (" " * (width - r.size))
+      r.replace(newr)
+    end
+
     @dir = 0 # right
     @pos = [0, @rows[0].index(".")]
     snail_mark
@@ -71,7 +79,7 @@ class Map
 
   def dump
     @rows.each do |r|
-      puts r
+      puts "#{r}|"
     end
   end
 
@@ -83,9 +91,12 @@ class Map
   end
 
   def go1(step)
-    # puts
-    # puts "At #{[@dir, @pos].inspect}"
-    # puts "Go1 #{step.inspect}"
+    if $sus
+      puts
+      puts "At #{[@dir, @pos].inspect}"
+      puts "Go1 #{step.inspect}"
+    end
+
     if step.distance == 0
       @dir = (@dir + step.angle) % Step::DELTA.size
       snail_mark
@@ -106,9 +117,17 @@ class Map
   # Do a single step, wrapping around the edges and skipping the Void
   # return [row, col] with Open or Wall, not Void
   def wrap_step(row, col, drow, dcol)
-    # puts "WS #{row}, #{col}, #{drow}, #{dcol}"
+    puts "WS #{row}, #{col}, #{drow}, #{dcol}" if $sus
     loop do
-      row = (row + drow) % @rows.size
+      row += drow
+      # $sus = true if row < 0
+      if $sus
+        puts @pos.inspect if row < 0
+        puts row
+      end
+      row = row % @rows.size
+      puts row if $sus
+
       col = (col + dcol) % @rows[row].size
       # stepped, possibly wrapped
       tile = @rows[row][col]
