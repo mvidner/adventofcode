@@ -115,8 +115,7 @@ class Map
     end
 
     step.distance.times do
-      drow, dcol = Step::DELTA[@dir]
-      ndir, npos = wrap_step(@pos[0], @pos[1], drow, dcol)
+      ndir, npos = wrap_step(@pos[0], @pos[1], @dir)
       nrow, ncol = npos
       return if @rows[nrow][ncol] == "#"
 
@@ -127,8 +126,10 @@ class Map
   end
 
   # Do a single step, wrapping around the edges and skipping the Void
+  # @param dir [0,1,2,3] as in Step, FIXME: not a nice dependency?
   # return [dir, [row, col]] with Open or Wall, not Void
-  def wrap_step(row, col, drow, dcol)
+  def wrap_step(row, col, dir)
+    drow, dcol = Step::DELTA[dir]
     puts "WS #{row}, #{col}, #{drow}, #{dcol}" if $sus
 
     loop do
@@ -139,7 +140,7 @@ class Map
       break unless tile == " "
     end
 
-    [@dir, [row, col]]
+    [dir, [row, col]]
   end
 
   def password
@@ -170,6 +171,41 @@ class T
   end
 end
 
+BigTransition = Struct.new(:face_row_delta, :face_col_delta, :transition)
+
+class B
+  def self.[](face_row_delta, face_col_delta, transition)
+    BigTransition.new(face_row_delta, face_col_delta, transition)
+  end
+end
+
+class TransitionEvaluator
+  def initialize(ro, co, esize)
+    @ro = ro
+    @co = co
+    @esize = esize
+  end
+
+  attr_reader :ro, :co
+
+  def iro
+    (@esize - 1) - ro
+  end
+
+  def ico
+    (@esize - 1) - co
+  end
+
+  def eval(transition)
+    r_method, c_method, _rot = transition.to_a
+
+    nro = self.public_send(r_method)
+    nco = self.public_send(c_method)
+
+    [nro, nco]
+  end
+end
+
 class CubeMap < Map
   JOIN_LR = T[:ro, :ico, 0]
   JOIN_UD = T[:iro, :co, 0]
@@ -187,47 +223,122 @@ class CubeMap < Map
   UTURN_LR = T[:iro, :co, 2]
   UTURN_UD = T[:ro, :ico, 2]
 
+  # A FaceTransition is a quadruple of 4 BigTransitions (naming sucks iknow)
+  #
+  # A BigTransition is a
+  # Transitions,
+  # arranged as a hash keyed :u :l :d :r for up left down right.
+  # NOFACE means no transitions should occur there.
   NOFACE = {}
+
+  # TRANSITIONS_* is indexed by rows and columns of faces,
+  # as they appear in the input
+
+  # sample.txt has faces laid out like
+  # ..X.
+  # XXX.
+  # ..XX
+  # So '.' will have NOFACE and X will have a FaceTransition
   TRANSITIONS_SAMPLE = [
     [
       NOFACE,
       NOFACE,
-      { u: UTURN_UD, l: ROT_Q1_CCW, d: JOIN_UD, r: UTURN_LR },
+      # [0, 2]
+      {
+        u: B[1, -2, UTURN_UD],
+        l: B[1, -1, ROT_Q1_CCW],
+        d: B[1, 0, JOIN_UD],
+        r: B[2, 1, UTURN_LR]
+      },
       NOFACE
     ],
     [
-      { u: UTURN_UD, l: ROT_Q0_CW, d: UTURN_UD, r: JOIN_LR },
-      { u: ROT_Q1_CW, l: JOIN_LR, d: ROT_Q2_CCW, r: JOIN_LR },
-      { u: JOIN_UD, l: JOIN_LR, d: JOIN_UD, r: ROT_Q0_CW },
+      # [1, 0]
+      {
+        u: B[-1, 2, UTURN_UD],
+        l: B[1, 3, ROT_Q0_CW],
+        d: B[1, 2, UTURN_UD],
+        r: B[0, 1, JOIN_LR]
+      },
+      # [1, 1]
+      { u: B[-1, 1, ROT_Q1_CW],
+        l: B[0, -1, JOIN_LR],
+        d: B[1, 1, ROT_Q2_CCW],
+        r: B[0, 1, JOIN_LR]
+      },
+      # [1, 2]
+      {
+        u: B[-1, 0, JOIN_UD],
+        l: B[0, -1, JOIN_LR],
+        d: B[1, 0, JOIN_UD],
+        r: B[1, 1, ROT_Q0_CW]
+      },
       NOFACE
     ],
     [
       NOFACE,
       NOFACE,
-      { u: JOIN_UD, l: ROT_Q2_CW, d: UTURN_UD, r: JOIN_LR },
-      { u: ROT_Q0_CCW, l: JOIN_LR, d: ROT_Q0_CCW, r: UTURN_LR }
+      # [2, 2]
+      {
+        u: B[-1, 0, JOIN_UD],
+        l: B[-1, -1, ROT_Q2_CW],
+        d: B[-1, -2, UTURN_UD],
+        r: B[0, 1, JOIN_LR]
+      },
+      # [2, 3]
+      { u: B[-1, -1, ROT_Q0_CCW],
+        l: B[0, -1, JOIN_LR],
+        d: B[-1, -3, ROT_Q0_CCW],
+        r: B[-2, -1, UTURN_LR]
+      }
     ]
   ]
 
   # Do a single step, wrapping around cube edges
+  # @param dir [0,1,2,3] as in Step, FIXME: not a nice dependency?
   # return [dir, [row, col]] with Open or Wall, not Void
-  def wrap_step(row, col, drow, dcol)
-    # row face, col face - including nonexistent faces
-    rowf = row / esize
-    colf = col / esize
+  def wrap_step(row, col, dir)
+    drow, dcol = Step::DELTA[dir]
+    puts "WS #{row}, #{col}, #{drow}, #{dcol}" if $sus
 
-    nrow = (row + drow) % @rows.size
-    ncol = (col + dcol) % @rows[row].size
+    # row face, col face
+    # row offset, col offset
+    rowf, rowo = row.divmod(esize)
+    colf, colo = col.divmod(esize)
+
+    # where we'd go in the planar map...
+    nrow = row + drow
+    ncol = col + dcol
+    # ... and what face it would mean
     nrowf = nrow / esize
     ncolf = ncol / esize
 
-    # not void, simple case
-    #
-    # oops, wrong for sample!
-    # can wrap from bottom to top over 3 squares , missing the correct cube wrap
-    return [@dir, [nrow, ncol]] if @rows[nrow][ncol] != " "
+    # simple case: staying on the same face
+    return [@dir, [nrow, ncol]] if nrowf == rowf && ncolf == colf
 
-    raise "cube wrap #{[row, col]} -> #{[nrow, ncol]} faces #{[rowf, colf]} -> #{[nrowf, ncolf]}"
+    # now nrow nrowf are invalid
+    puts "cube wrap #{[row, col]} -> #{[nrow, ncol]} from face #{[rowf, colf]} dir #{Step::FACES[dir]}"
+
+    face_transition = TRANSITIONS_SAMPLE[rowf][colf]
+    raise "Bug: no transition defined here" if face_transition == NOFACE
+
+    ft_idx = [:r, :d, :l, :u][dir]
+    big_transition = face_transition[ft_idx]
+
+    nrowf = rowf + big_transition.face_row_delta
+    ncolf = colf + big_transition.face_col_delta
+
+    transition = big_transition.transition
+    te = TransitionEvaluator.new(rowo, colo, esize)
+    nrowo, ncolo = te.eval(transition)
+
+    ndir = dir + transition.dir_change
+    nrow = nrowf * esize + nrowo
+    ncol = ncolf * esize + ncolo
+
+    ret = [ndir, [nrow, ncol]]
+    puts "cube wrap step returning #{ret.inspect}"
+    ret
   end
 
   # edge size
