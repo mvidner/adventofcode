@@ -58,8 +58,7 @@ end
 # Wall '#'
 # Void ' '
 class Map
-  def initialize(text, is_cube: false)
-    @is_cube = is_cube
+  def initialize(text)
     @rows = text.lines.map(&:chomp)
 
     # but they are ragged at the right! rectangularize!
@@ -72,15 +71,6 @@ class Map
     @dir = 0 # right
     @pos = [0, @rows[0].index(".")]
     snail_mark
-  end
-
-  # edge size
-  def esize
-    return @esize if @esize
-    # FIXME: only works for my sample and input map layout
-    esize = [@rows.size / 3, @rows[0].size / 3].min
-    puts "esize #{esize}" if $sus
-    @esize = esize
   end
 
   def snail_mark
@@ -140,7 +130,6 @@ class Map
   # return [dir, [row, col]] with Open or Wall, not Void
   def wrap_step(row, col, drow, dcol)
     puts "WS #{row}, #{col}, #{drow}, #{dcol}" if $sus
-    return cube_wrap_step(row, col, drow, dcol) if @is_cube
 
     loop do
       row = (row + drow) % @rows.size
@@ -153,9 +142,31 @@ class Map
     [@dir, [row, col]]
   end
 
+  def password
+    1000 * (@pos[0] + 1) + 4 * (@pos[1] + 1 ) + @dir
+  end
+end
+
+Transition = Struct.new(:new_ro, :new_co, :dir_change) do
+  # ro and co are row offset, column offset, within their face, that is
+  # 0 <= ro, co < esize (edge size)
+
+  # The values of new_ro, new_co are symbols, meaning
+  # :ro, :co - just copy the old row or column offset
+  # :wro, :wco - wrapped offset:
+  #   input must be 0 or esize-1, output is esize-1 or 0
+  # :iro, :ico - inverted offset:
+  #   input ranges from 0 to esize-1, output goes inversely from esize-1 to 0
+  #   O M G, wrapping is just a special case of inversion, I can SIMPLIFY!!1!
+end
+
+class CubeMap < Map
+  JOIN_LR = [:ro, :wco]
+  TRANSITIONS = []
+
   # Do a single step, wrapping around cube edges
   # return [dir, [row, col]] with Open or Wall, not Void
-  def cube_wrap_step(row, col, drow, dcol)
+  def wrap_step(row, col, drow, dcol)
     # row face, col face - including nonexistent faces
     rowf = row / esize
     colf = col / esize
@@ -174,8 +185,13 @@ class Map
     raise "cube wrap #{[row, col]} -> #{[nrow, ncol]} faces #{[rowf, colf]} -> #{[nrowf, ncolf]}"
   end
 
-  def password
-    1000 * (@pos[0] + 1) + 4 * (@pos[1] + 1 ) + @dir
+  # edge size
+  def esize
+    return @esize if @esize
+    # FIXME: only works for my sample and input map layout
+    esize = [@rows.size / 3, @rows[0].size / 3].min
+    puts "esize #{esize}" if $sus
+    @esize = esize
   end
 end
 
@@ -190,7 +206,7 @@ if $PROGRAM_NAME == __FILE__
   map.dump
   puts "Password: #{map.password}"
 
-  cmap = Map.new(map_text, is_cube: true)
+  cmap = CubeMap.new(map_text)
   cmap.go(steps)
   cmap.dump
   puts "Password: #{cmap.password}"
