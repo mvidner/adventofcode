@@ -78,8 +78,8 @@ class Map
   end
 
   def dump
-    @rows.each do |r|
-      puts "#{r}|"
+    @rows.each_with_index do |r, i|
+      puts "#{r}| #{i}"
     end
   end
 
@@ -104,37 +104,31 @@ class Map
       # that was easy
     end
 
-    drow, dcol = Step::DELTA[@dir]
     step.distance.times do
-      nrow, ncol = wrap_step(@pos[0], @pos[1], drow, dcol)
+      drow, dcol = Step::DELTA[@dir]
+      ndir, npos = wrap_step(@pos[0], @pos[1], drow, dcol)
+      nrow, ncol = npos
       return if @rows[nrow][ncol] == "#"
 
+      @dir = ndir
       @pos = nrow, ncol
       snail_mark
     end
   end
 
   # Do a single step, wrapping around the edges and skipping the Void
-  # return [row, col] with Open or Wall, not Void
+  # return [dir, [row, col]] with Open or Wall, not Void
   def wrap_step(row, col, drow, dcol)
     puts "WS #{row}, #{col}, #{drow}, #{dcol}" if $sus
     loop do
-      row += drow
-      # $sus = true if row < 0
-      if $sus
-        puts @pos.inspect if row < 0
-        puts row
-      end
-      row = row % @rows.size
-      puts row if $sus
-
+      row = (row + drow) % @rows.size
       col = (col + dcol) % @rows[row].size
       # stepped, possibly wrapped
       tile = @rows[row][col]
       break unless tile == " "
     end
 
-    [row, col]
+    [@dir, [row, col]]
   end
 
   def password
