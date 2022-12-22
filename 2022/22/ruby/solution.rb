@@ -148,21 +148,66 @@ class Map
 end
 
 Transition = Struct.new(:new_ro, :new_co, :dir_change) do
+  # dir_change is +1 for CW (clockwise), -1 CCW (counterclockwise),
+  #   0 none, 2 U-turn;
+  #   and these match with Step::DELTA and FACES
+
   # ro and co are row offset, column offset, within their face, that is
   # 0 <= ro, co < esize (edge size)
 
   # The values of new_ro, new_co are symbols, meaning
   # :ro, :co - just copy the old row or column offset
-  # :wro, :wco - wrapped offset:
-  #   input must be 0 or esize-1, output is esize-1 or 0
   # :iro, :ico - inverted offset:
-  #   input ranges from 0 to esize-1, output goes inversely from esize-1 to 0
-  #   O M G, wrapping is just a special case of inversion, I can SIMPLIFY!!1!
+  #   input ranges from 0 to esize-1, output goes inversely from esize-1 to 0;
+  #   In some special cases input is only 0 or esize-1 which originally
+  #   lead me to introducew :wro, :wco with wrapping
+end
+
+# typing shortcut
+class T
+  def self.[](r, c, d)
+    Transition.new(r, c, d)
+  end
 end
 
 class CubeMap < Map
-  JOIN_LR = [:ro, :wco]
-  TRANSITIONS = []
+  JOIN_LR = T[:ro, :ico, 0]
+  JOIN_UD = T[:iro, :co, 0]
+
+  # quadrants:
+  #
+  # Q1 | Q0
+  # ---+---
+  # Q2 | Q3
+  ROT_Q0_CW = ROT_Q2_CW = T[:ico, :iro, 1]
+  ROT_Q0_CCW = ROT_Q2_CCW = T[:ico, :iro, -1]
+  ROT_Q1_CW = ROT_3_CW = T[:co, :ro, 1]
+  ROT_Q1_CCW = ROT_3_CCW = T[:co, :ro, -1]
+
+  UTURN_LR = T[:iro, :co, 2]
+  UTURN_UD = T[:ro, :ico, 2]
+
+  NOFACE = {}
+  TRANSITIONS_SAMPLE = [
+    [
+      NOFACE,
+      NOFACE,
+      { u: UTURN_UD, l: ROT_Q1_CCW, d: JOIN_UD, r: UTURN_LR },
+      NOFACE
+    ],
+    [
+      { u: UTURN_UD, l: ROT_Q0_CW, d: UTURN_UD, r: JOIN_LR },
+      { u: ROT_Q1_CW, l: JOIN_LR, d: ROT_Q2_CCW, r: JOIN_LR },
+      { u: JOIN_UD, l: JOIN_LR, d: JOIN_UD, r: ROT_Q0_CW },
+      NOFACE
+    ],
+    [
+      NOFACE,
+      NOFACE,
+      { u: JOIN_UD, l: ROT_Q2_CW, d: UTURN_UD, r: JOIN_LR },
+      { u: ROT_Q0_CCW, l: JOIN_LR, d: ROT_Q0_CCW, r: UTURN_LR }
+    ]
+  ]
 
   # Do a single step, wrapping around cube edges
   # return [dir, [row, col]] with Open or Wall, not Void
