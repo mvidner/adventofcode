@@ -47,6 +47,7 @@ TILES = tiles.map { |rows| Tile.new(rows) }
 class Tetris
   def initialize(moves)
     @moves = moves
+    puts "#{moves.size} moves"
     @next_move = 0
 
     @width = 7
@@ -75,6 +76,14 @@ class Tetris
 
     spawn(tile)
 
+    begin
+      push
+      landed = drop1
+    end until landed
+
+  end
+
+  def drop1
   end
 
   def make_rows(count)
