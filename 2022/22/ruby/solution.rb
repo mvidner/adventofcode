@@ -58,7 +58,8 @@ end
 # Wall '#'
 # Void ' '
 class Map
-  def initialize(text)
+  def initialize(text, is_cube: false)
+    @is_cube = is_cube
     @rows = text.lines.map(&:chomp)
 
     # but they are ragged at the right! rectangularize!
@@ -73,14 +74,33 @@ class Map
     snail_mark
   end
 
+  # edge size
+  def esize
+    return @esize if @esize
+    # FIXME: only works for my sample and input map layout
+    esize = [@rows.size / 3, @rows[0].size / 3].min
+    puts "esize #{esize}" if $sus
+    @esize = esize
+  end
+
   def snail_mark
     @rows[@pos[0]][@pos[1]] = Step::FACES[@dir]
   end
 
   def dump
+    cols = @rows[0].size.times.map { |c| format("%3d", c) }
+    col_labels = lambda do
+      cols[0].size.times.map do |i|
+        digits = cols.map { |s| s[i] }.join
+        puts digits unless digits.strip.empty?
+      end
+    end
+
+    col_labels.call
     @rows.each_with_index do |r, i|
       puts "#{r}| #{i}"
     end
+    col_labels.call
   end
 
   def go(steps)
@@ -120,6 +140,8 @@ class Map
   # return [dir, [row, col]] with Open or Wall, not Void
   def wrap_step(row, col, drow, dcol)
     puts "WS #{row}, #{col}, #{drow}, #{dcol}" if $sus
+    return cube_wrap_step(row, col, drow, dcol) if @is_cube
+
     loop do
       row = (row + drow) % @rows.size
       col = (col + dcol) % @rows[row].size
@@ -131,6 +153,27 @@ class Map
     [@dir, [row, col]]
   end
 
+  # Do a single step, wrapping around cube edges
+  # return [dir, [row, col]] with Open or Wall, not Void
+  def cube_wrap_step(row, col, drow, dcol)
+    # row face, col face - including nonexistent faces
+    rowf = row / esize
+    colf = col / esize
+
+    nrow = (row + drow) % @rows.size
+    ncol = (col + dcol) % @rows[row].size
+    nrowf = nrow / esize
+    ncolf = ncol / esize
+
+    # not void, simple case
+    #
+    # oops, wrong for sample!
+    # can wrap from bottom to top over 3 squares , missing the correct cube wrap
+    return [@dir, [nrow, ncol]] if @rows[nrow][ncol] != " "
+
+    raise "cube wrap #{[row, col]} -> #{[nrow, ncol]} faces #{[rowf, colf]} -> #{[nrowf, ncolf]}"
+  end
+
   def password
     1000 * (@pos[0] + 1) + 4 * (@pos[1] + 1 ) + @dir
   end
@@ -140,9 +183,15 @@ if $PROGRAM_NAME == __FILE__
   text = File.read(ARGV[0] || "input.txt")
   map_text, path_text = text.split("\n\n")
 
-  map = Map.new(map_text)
   steps = Step.parse(path_text.chomp)
+
+  map = Map.new(map_text)
   map.go(steps)
   map.dump
   puts "Password: #{map.password}"
+
+  cmap = Map.new(map_text, is_cube: true)
+  cmap.go(steps)
+  cmap.dump
+  puts "Password: #{cmap.password}"
 end
