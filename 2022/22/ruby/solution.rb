@@ -217,8 +217,8 @@ class CubeMap < Map
   # Q2 | Q3
   ROT_Q0_CW = ROT_Q2_CW = T[:ico, :iro, 1]
   ROT_Q0_CCW = ROT_Q2_CCW = T[:ico, :iro, -1]
-  ROT_Q1_CW = ROT_3_CW = T[:co, :ro, 1]
-  ROT_Q1_CCW = ROT_3_CCW = T[:co, :ro, -1]
+  ROT_Q1_CW = ROT_Q3_CW = T[:co, :ro, 1]
+  ROT_Q1_CCW = ROT_Q3_CCW = T[:co, :ro, -1]
 
   UTURN_LR = T[:iro, :co, 2]
   UTURN_UD = T[:ro, :ico, 2]
@@ -294,6 +294,64 @@ class CubeMap < Map
     ]
   ]
 
+  TRANSITIONS_INPUT = [
+    [
+      NOFACE,
+      # [0, 1]
+      {
+        u: B[3, -1, ROT_Q3_CW],
+        l: B[2, -1, UTURN_LR],
+        d: B[1, 0, JOIN_UD],
+        r: B[0, 1, JOIN_LR]
+      },
+      # [0, 2]
+      {
+        u: B[3, -2, UTURN_UD],
+        l: B[0, -1, JOIN_LR],
+        d: B[1, -1, ROT_Q3_CW],
+        r: B[2, -1, UTURN_LR]
+      }
+    ],
+    [
+      NOFACE,
+      # [1, 1]
+      {
+        u: B[-1, 0, JOIN_UD],
+        l: B[1, -1, ROT_Q1_CCW],
+        d: B[1, 0, JOIN_UD],
+        r: B[-1, 1, ROT_Q3_CCW]
+      },
+      NOFACE
+    ],
+    [
+      # [2, 0]
+      {
+        u: B[-1, 1, ROT_Q1_CW],
+        l: B[-2, 1, UTURN_LR],
+        d: B[1, 0, JOIN_UD],
+        r: B[0, 1, JOIN_LR]
+      },
+      # [2, 1]
+      {
+        u: B[-1, 0, JOIN_UD],
+        l: B[0, -1, JOIN_LR],
+        d: B[1, -1, ROT_Q3_CW],
+        r: B[-2, 1, UTURN_LR]
+      },
+      NOFACE
+    ],
+    [
+      # [3, 0]
+      {
+        u: B[-1, 0, JOIN_UD],
+        l: B[-3, 1, ROT_Q3_CCW],
+        d: B[-3, 2, UTURN_UD],
+        r: B[-1, 1, ROT_Q3_CCW]
+      },
+      NOFACE,
+      NOFACE
+    ]
+  ]
   # Do a single step, wrapping around cube edges
   # @param dir [0,1,2,3] as in Step, FIXME: not a nice dependency?
   # return [dir, [row, col]] with Open or Wall, not Void
@@ -319,7 +377,15 @@ class CubeMap < Map
     # now nrow nrowf are invalid
     puts "cube wrap #{[row, col]} -> #{[nrow, ncol]} from face #{[rowf, colf]} dir #{Step::FACES[dir]}"
 
-    face_transition = TRANSITIONS_SAMPLE[rowf][colf]
+    transitions = case esize
+                  when 50
+                    TRANSITIONS_INPUT
+                  when 4
+                    TRANSITIONS_SAMPLE
+                  else
+                    raise "Now you have to hardcode another cube, good luck"
+                  end
+    face_transition = transitions[rowf][colf]
     raise "Bug: no transition defined here" if face_transition == NOFACE
 
     ft_idx = [:r, :d, :l, :u][dir]
@@ -332,7 +398,7 @@ class CubeMap < Map
     te = TransitionEvaluator.new(rowo, colo, esize)
     nrowo, ncolo = te.eval(transition)
 
-    ndir = dir + transition.dir_change
+    ndir = (dir + transition.dir_change) % 4
     nrow = nrowf * esize + nrowo
     ncol = ncolf * esize + ncolo
 
