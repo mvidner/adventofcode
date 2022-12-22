@@ -346,7 +346,7 @@ class CubeMap < Map
       {
         u: B[-1, 0, JOIN_UD],
         l: B[-3, 1, ROT_Q3_CCW],
-        d: B[-3, 2, UTURN_UD],
+        d: B[-3, 2, JOIN_UD], # 20 minutes, later, the reverse direction of the bug
         r: B[-1, 1, ROT_Q3_CCW]
       },
       NOFACE,
@@ -426,7 +426,8 @@ if $PROGRAM_NAME == __FILE__
   debug = false
   if debug
     cmap = CubeMap.new(map_text, pass_thru_walls: true)
-    debug_steps = Step.parse("50L210")
+    # debug_steps = Step.parse("190R190R190")
+    debug_steps = Step.parse("210L190")
     cmap.go(debug_steps)
     cmap.dump
     exit
