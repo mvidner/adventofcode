@@ -58,7 +58,8 @@ end
 # Wall '#'
 # Void ' '
 class Map
-  def initialize(text)
+  def initialize(text, pass_thru_walls: false)
+    @pass_thru_walls = pass_thru_walls
     @rows = text.lines.map(&:chomp)
 
     # but they are ragged at the right! rectangularize!
@@ -117,7 +118,7 @@ class Map
     step.distance.times do
       ndir, npos = wrap_step(@pos[0], @pos[1], @dir)
       nrow, ncol = npos
-      return if @rows[nrow][ncol] == "#"
+      return if !@pass_thru_walls && @rows[nrow][ncol] == "#"
 
       @dir = ndir
       @pos = nrow, ncol
@@ -306,7 +307,7 @@ class CubeMap < Map
       },
       # [0, 2]
       {
-        u: B[3, -2, UTURN_UD],
+        u: B[3, -2, JOIN_UD], # bug: was UTURN_UD
         l: B[0, -1, JOIN_LR],
         d: B[1, -1, ROT_Q3_CW],
         r: B[2, -1, UTURN_LR]
@@ -352,6 +353,7 @@ class CubeMap < Map
       NOFACE
     ]
   ]
+
   # Do a single step, wrapping around cube edges
   # @param dir [0,1,2,3] as in Step, FIXME: not a nice dependency?
   # return [dir, [row, col]] with Open or Wall, not Void
@@ -421,6 +423,15 @@ if $PROGRAM_NAME == __FILE__
   text = File.read(ARGV[0] || "input.txt")
   map_text, path_text = text.split("\n\n")
 
+  debug = false
+  if debug
+    cmap = CubeMap.new(map_text, pass_thru_walls: true)
+    debug_steps = Step.parse("50L210")
+    cmap.go(debug_steps)
+    cmap.dump
+    exit
+  end
+
   steps = Step.parse(path_text.chomp)
 
   map = Map.new(map_text)
@@ -431,5 +442,5 @@ if $PROGRAM_NAME == __FILE__
   cmap = CubeMap.new(map_text)
   cmap.go(steps)
   cmap.dump
-  puts "Password: #{cmap.password}"
+  puts "Cube Password: #{cmap.password}"
 end
