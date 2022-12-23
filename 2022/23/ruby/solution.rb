@@ -53,8 +53,8 @@ class Diffusion
     [Pos[minx, miny], Pos[maxx, maxy]]
   end
 
-  def dump
-    min, max = bounding_box
+  def dump(bb = nil)
+    min, max = bb || bounding_box
     max.y.downto(min.y) do |y|
       min.x.upto(max.x) do |x|
         c = @elves.include?(Pos[x, y]) ? "#" : "."
@@ -72,16 +72,20 @@ class Diffusion
     # *want* is a Hash{Pos => Array<Pos>}
     # key: destination position
     # values: source positions that want to get there
-    want = propose
-    still_going = commit(want)
+    #
+    # *still* is Array<Pos> those standing still
+    want, still = propose
+    # puts "Want: #{want}"
+    # puts "Still: #{still}"
+    commit(want, still)
     next_direction
 
-    still_going
+    want.size > 0
   end
 
   def round_directions
     ret = (DIRECTIONS + DIRECTIONS)[@first_direction ... @first_direction + 4]
-    p ret
+    # p ret
     ret
   end
 
@@ -93,10 +97,11 @@ class Diffusion
 
   def propose
     want = {}
+    still = []
     @elves.each do |e|
       ns = count_neighbors(e, ALL_NEIGHBORS)
       if ns == 0
-        dest = e # unchanged
+        still << e # unchanged
       else
         found_dir = round_directions.find do |dir|
           dns = count_neighbors(e, LOOK[dir])
@@ -109,30 +114,26 @@ class Diffusion
         else
           dest = e
         end
+        want[dest] ||= []
+        want[dest] << e
       end
-
-      want[dest] ||= []
-      want[dest] << e
     end
-    pp want
+    [want, still]
   end
 
-  # @return [Boolean] anyone moved? then we should go on
-  def commit(want)
-    anyone_moved = false
-    new_elves = [].to_set
+  def commit(want, still)
+    new_elves = still.to_set
 
     want.each do |dest, sources|
       if sources.size > 1
         new_elves.merge(sources)
       else
-        anyone_moved = true
+        # p [dest, sources]
         new_elves.add(dest)
       end
     end
 
     @elves = new_elves
-    anyone_moved
   end
 
   def count_empty
@@ -145,10 +146,46 @@ end
 if $PROGRAM_NAME == __FILE__
   text = File.read(ARGV[0] || "input.txt")
 
-  d = Diffusion.new(text)
-  10.times do |i|
-    puts "Round #{i+1}"
-    d.round
+  # desperate measures: debug with the trivial sample
+  if false
+    text = <<TXT
+.....
+..##.
+..#..
+.....
+..##.
+.....
+TXT
   end
-  puts "Empty positions: #{d.count_empty}"
+
+  d = Diffusion.new(text)
+
+  if false
+    10.times do |i|
+      puts "Round #{i+1}"
+      d.round
+    end
+    puts "Empty positions: #{d.count_empty}"
+  else
+    if $sus
+      bb = [Pos[-3, -9], Pos[10, 2]]
+      puts "== Initial State =="
+      d.dump(bb)
+      puts
+    end
+
+    rs = 1
+    while d.round
+      if $sus
+        puts "== End of Round #{rs} =="
+        d.dump(bb)
+        # puts "Empty positions: #{d.count_empty}"
+        puts
+      end
+      puts rs if rs % 10 == 0
+
+      rs += 1
+    end
+    puts "Total #{rs} rounds"
+  end
 end
