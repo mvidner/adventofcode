@@ -131,12 +131,32 @@ class Tetris
   def drop
     spawn
 
+    cache
+
     begin
       push
       landed = drop1
     end until landed
 
     commit
+  end
+
+  def cache
+    @cache ||= {}
+    @cache[@next_tile_i] ||= {}
+
+    seen_height = @cache[@next_tile_i][@next_move]
+    if seen_height && !@skip_dump
+      p [@next_tile_i, @next_move, @height]
+      puts "previous #{seen_height}"
+      dh = @height - seen_height
+      puts "diff #{dh}"
+
+      dump unless @skip_dump
+      @skip_dump = true
+    end
+
+    @cache[@next_tile_i][@next_move] = @height
   end
 
   def make_rows(count)
@@ -235,4 +255,15 @@ if $PROGRAM_NAME == __FILE__
   puts "Finally"
   tetris.dump if $sus
   puts "Height: #{tetris.height}"
+
+  tetris = Tetris.new(moves)
+  # many = 1_000_000_000_000
+  many = 2022
+
+  many.times do |i|
+    tetris.drop
+    if i % 1_000_000 == 0
+      puts "(#{i}) height #{tetris.height}"
+    end
+  end
 end
