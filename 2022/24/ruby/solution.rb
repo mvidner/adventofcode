@@ -6,6 +6,10 @@ class Pos < Array
     Pos[r + other.r, c + other.c]
   end
 
+  def %(moduli)
+    Pos[r % moduli.r, c % moduli.c]
+  end
+
   def r
     self[0]
   end
@@ -56,7 +60,7 @@ class BlizzardBasin
   def move_blizzards
     # mutate in place
     @blizzards.each do |b|
-      b.pos = b.pos + b.dir
+      b.pos = (b.pos + b.dir) % Pos[@h, @w]
     end
 
     # invalidate
@@ -72,15 +76,15 @@ class BlizzardBasin
   end
 
 
-  # olds currents and news are sets
+  # currents and news are sets
   # go takes one current and returns the ones reachable from it
   # return news
-  def wave(olds, currents, &go)
+  def edge_wave(currents, &go)
     news = Set.new
     currents.each do |cur|
       candidates = go.call(cur)
       candidates.each do |can|
-        news << can unless olds.include?(can) || currents.include?(can)
+        news << can # unless  currents.include?(can)
       end
     end
     news
@@ -90,11 +94,13 @@ class BlizzardBasin
     Pos[-1, 0],
     Pos[1, 0],
     Pos[0, -1],
-    Pos[0, 1]
+    Pos[0, 1],
+    # can stand still
+    Pos[0, 0]
   ]
 
   # @return [Enumerable<Pos>]
-  def reachable_from(pos, reverse: false)
+  def edge_reachable_from(pos, reverse: false)
     reach = DELTAS.map { |d| pos + d }
 
     reach = reach.find_all do |p|
@@ -113,23 +119,21 @@ class BlizzardBasin
     at(to) <= at(from) + 1
   end
 
-  def steps_to_summit(reverse: false)
+  def steps_to_end(reverse: false)
     @steps = 0
     start, end_ = @start, @end
     start, end_ = end_, start if reverse
 
-    olds = [].to_set
     currents = [start].to_set
 
     loop do
       @steps += 1
       move_blizzards
 
-      puts "WAVE olds: #{olds}" if ENV["WAVE"]
       puts "WAVE curs: #{currents}" if ENV["WAVE"]
 
-      news = wave(olds, currents) do |cur|
-        reachable_from(cur, reverse: reverse)
+      news = edge_wave(currents) do |cur|
+        edge_reachable_from(cur, reverse: reverse)
       end
       if ENV["WAVE"]
         puts "WAVE news:"
@@ -143,7 +147,6 @@ class BlizzardBasin
       end
       break if news.empty?
 
-      olds = olds | currents
       currents = news
     end
   end
@@ -153,5 +156,5 @@ if $PROGRAM_NAME == __FILE__
   text = File.read(ARGV[0] || "input.txt")
   bb = BlizzardBasin.new(text)
 
-  puts bb.steps_to_summit.inspect
+  puts bb.steps_to_end.inspect
 end
