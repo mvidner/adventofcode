@@ -166,20 +166,55 @@ class Tetris
     move = @moves[@next_move]
     @next_move = (@next_move + 1) % @moves.size
 
-    # DEBUG
-    5.times do
-      t = @tile.shift_right(move == ">" ? 1 : -1, WIDTH)
-      @tile = t if t
-    end
-#    (@tile_bottom ... @height).each do |ri|
+
+    t = @tile.shift_right(move == ">" ? 1 : -1, WIDTH)
+
+    # pushed against the wall
+    return if t.nil?
+
+    # collides with other tiles once at tower height
+    return if @tile_bottom < @height && collision?(t, @tile_bottom)
+
+    @tile = t
   end
 
   # @return [Boolean] true if landed
   def drop1
-    true
+    if @tile_bottom > @height
+      @tile_bottom -=1
+      return false
+    end
+
+    new_tile_bottom = @tile_bottom - 1
+    return true if new_tile_bottom == -1
+
+    if collision?(@tile, new_tile_bottom)
+      true
+    else
+      @tile_bottom = new_tile_bottom
+      false
+    end
+  end
+
+  def collision?(tile, tile_bottom)
+    tile.each_with_index do |tr, tri|
+      return true if tr & @rows.fetch(tri + tile_bottom, 0) != 0
+    end
+    false
   end
 
   def commit
+    # add rows if needed
+    add = @tile_bottom + @tile.size - @height
+    if add > 0
+      @rows.concat(Array.new(add, 0))
+      @height += add
+    end
+
+    # add the tile bits
+    @tile.each_with_index do |tr, tri|
+      @rows[tri + @tile_bottom] |= tr
+    end
   end
 end
 
@@ -188,15 +223,16 @@ if $PROGRAM_NAME == __FILE__
   moves = text.chomp.chars
 
   tetris = Tetris.new(moves)
-  puts "Initially"
-  tetris.dump
-  #2022.times do |i|
-  22.times do |i|
-    tetris.drop
-    tetris.dump
-  end
-  puts "Finally"
-  tetris.dump
-  puts "Height: #{tetris.height}"
+  puts "Initially" if $sus
+  tetris.dump if $sus
 
+  2022.times do |i|
+    tetris.drop
+    puts "After #{i+1} drops" if $sus
+    tetris.dump if $sus
+  end
+
+  puts "Finally"
+  tetris.dump if $sus
+  puts "Height: #{tetris.height}"
 end
