@@ -86,12 +86,16 @@ class Tetris
   LEFT_PAD = 2
   BOTTOM_PAD = 3
   WIDTH = 7
-  # DUMP_PADDING = "." * WIDTH
 
-  def initialize(moves)
-    puts "#{moves.size} moves"
-    @moves = moves
-    @next_move = 0
+  def initialize(instructions, caching: false)
+    @caching = caching
+
+    puts "(with #{instructions.size} instructions)"
+    @instructions = instructions
+    # grows modulo @instructions
+    @next_instruction = 0
+    # grows by 1
+    @step = 0
 
     @height = 0
     @next_tile_i = 0
@@ -99,19 +103,23 @@ class Tetris
     # row 0 is bottom
     # row elements are bits as integers, see Tile
     @rows = []
+    # step in which this row was added
+    @rows_birth = []
     @tile = []
   end
 
   # distance of topmost rock from the floor
   attr_reader :height
 
-  def dump_part(rows, visual, row_offset: 0)
+  def dump_part(rows, visual, row_offset: 0, rows_birth: nil)
     dump_padding = visual[0] * WIDTH
     (rows.size - 1).downto(0) do |ri|
       r = rows[ri]
       sr = dump_padding + r.to_s(2).tr("01", visual)
       sr = sr[-WIDTH .. -1]
-      puts "|#{sr}| #{ri + row_offset}"
+      birth = ""
+      birth = rows_birth[ri + row_offset] if rows_birth
+      puts "|#{sr}| #{ri + row_offset} #{birth}"
     end
   end
 
@@ -121,17 +129,18 @@ class Tetris
     puts
 
     puts "TOWER"
-    dump_part(@rows, ".#")
+    dump_part(@rows, ".#", rows_birth: @rows_birth)
     puts "+#{"-" * WIDTH}+"
     puts
   end
 
   # Drop one tile until it lands
-  # using *moves* on it as it falls
+  # using *instructions* on it as it falls
+  #
+  # @return nil or a pair (d_instructions, d_height) meaning
+  #   a state repeats after *d_instructions* and the height has increased by *d_height*
   def drop
     spawn
-
-    cache
 
     begin
       push
@@ -139,24 +148,68 @@ class Tetris
     end until landed
 
     commit
+
+    if @caching
+      cache2
+    else
+      nil
+    end
   end
 
-  def cache
+  def cache2
+    return nil unless @next_instruction == 0
+
     @cache ||= {}
     @cache[@next_tile_i] ||= {}
 
-    seen_height = @cache[@next_tile_i][@next_move]
-    if seen_height && !@skip_dump
-      p [@next_tile_i, @next_move, @height]
-      puts "previous #{seen_height}"
-      dh = @height - seen_height
-      puts "diff #{dh}"
+    top_row = @rows[@height - 1]
+    seen_height_m1 = @cache[@next_tile_i][top_row]
 
-      dump unless @skip_dump
-      @skip_dump = true
+    if seen_height_m1
+      puts "next_tile_i #{@next_tile_i}"
+      puts "top_row #{top_row}"
+      puts "previous h-1 #{seen_height_m1}"
+
+      dump
+      exit
     end
 
-    @cache[@next_tile_i][@next_move] = @height
+    @cache[@next_tile_i][top_row] = @height - 1
+
+    nil
+  end
+  # @return nil or a pair (d_instructions, d_height) meaning
+  #   a state repeats after *d_instructions* and the height has increased by *d_height*
+  def cache
+    top_row = @rows[@height - 1]
+    @cache ||= {}
+    @cache[@next_tile_i] ||= {}
+    @cache[@next_tile_i][@next_instruction] ||= {}
+
+    seen_height_m1 = @cache[@next_tile_i][@next_instruction][top_row]
+    if seen_height_m1 && !@skip_dump
+      p [@next_tile_i, @next_instruction, top_row]
+      puts "previous h-1 #{seen_height_m1}"
+      d_height = (@height - 1) - seen_height_m1
+      puts "diff #{d_height}"
+
+      puts "@step #{@step}"
+
+      d_instructions = @step - @rows_birth[seen_height_m1]
+      if d_instructions >= @instructions.size
+        cycle = [d_instructions, d_height]
+        puts "Cycle #{cycle.inspect}"
+        dump unless @skip_dump
+        # @skip_dump = true
+        return cycle
+      else
+        puts "false cycle"
+      end
+    end
+
+    @cache[@next_tile_i][@next_instruction][top_row] = @height - 1
+
+    nil
   end
 
   def make_rows(count)
@@ -164,30 +217,23 @@ class Tetris
   end
 
   def spawn
+    @step += 1
+
     @tile = TILES[@next_tile_i]
     @next_tile_i = (@next_tile_i + 1) % TILES.size
 
-#    @rows.concat(make_rows(BOTTOM_PAD))
-#    @height += BOTTOM_PAD
-
     # row where the bottom-most piece of the tile is
     @tile_bottom = @height + BOTTOM_PAD
-
-    # unnecessary rendering?
-#    tile_height = @tile.size
-#    fresh_rows = @tile.shift_right(-(WIDTH-@tile.width-LEFT_PAD))
-#    @rows.concat(fresh_rows)
-#    @height += tile_height
 
     @tile = @tile.shift_right(-(WIDTH-@tile.width-LEFT_PAD), WIDTH)
   end
 
   def push
-    move = @moves[@next_move]
-    @next_move = (@next_move + 1) % @moves.size
+    instruction = @instructions[@next_instruction]
+    @next_instruction = (@next_instruction + 1) % @instructions.size
 
 
-    t = @tile.shift_right(move == ">" ? 1 : -1, WIDTH)
+    t = @tile.shift_right(instruction == ">" ? 1 : -1, WIDTH)
 
     # pushed against the wall
     return if t.nil?
@@ -228,6 +274,7 @@ class Tetris
     add = @tile_bottom + @tile.size - @height
     if add > 0
       @rows.concat(Array.new(add, 0))
+      @rows_birth.concat(Array.new(add, @step))
       @height += add
     end
 
@@ -240,9 +287,9 @@ end
 
 if $PROGRAM_NAME == __FILE__
   text = File.read(ARGV[0] || "input.txt")
-  moves = text.chomp.chars
+  instructions = text.chomp.chars
 
-  tetris = Tetris.new(moves)
+  tetris = Tetris.new(instructions)
   puts "Initially" if $sus
   tetris.dump if $sus
 
@@ -256,14 +303,32 @@ if $PROGRAM_NAME == __FILE__
   tetris.dump if $sus
   puts "Height: #{tetris.height}"
 
-  tetris = Tetris.new(moves)
+  puts
+  puts "With caching"
+  tetris = Tetris.new(instructions, caching: true)
   # many = 1_000_000_000_000
   many = 2022
+  many = 10_000_000
 
   many.times do |i|
-    tetris.drop
-    if i % 1_000_000 == 0
-      puts "(#{i}) height #{tetris.height}"
+    cycle = tetris.drop
+    if cycle
+      #  (------------- i ------------)
+      #  (~~start~~~)(.....d_instructions....)
+      d_instructions, d_height = cycle
+
+      # should be returning INSTEAD of performing the drop
+      repeat, rest = (many - i).divmod(d_instructions)
+      # h0 = tetris.height
+      h1 = repeat * d_height
+
+      puts "Rest #{rest}"
+      rest.times { tetris.drop }
+      h2 = tetris.height + h1
+      puts "SPEEDUP final"
+      tetris.dump
+      puts "SPEEDUP height #{h2}"
+      exit
     end
   end
 end
