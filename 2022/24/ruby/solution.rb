@@ -23,6 +23,7 @@ Blizzard = Struct.new(:pos, :dir)
 
 class BlizzardBasin
   def initialize(text)
+    @steps = 0
     @blizzards = []
 
     rows = text.lines.map(&:chomp)
@@ -104,7 +105,7 @@ class BlizzardBasin
     reach = DELTAS.map { |d| pos + d }
 
     reach = reach.find_all do |p|
-      next true if p == @end || p == @start
+      next true if p == @end || p == @start # BTW @start must be allowed
       (0...@h).include?(p.r) && (0...@w).include?(p.c)
     end
 
@@ -120,7 +121,6 @@ class BlizzardBasin
   end
 
   def steps_to_end(reverse: false)
-    @steps = 0
     start, end_ = @start, @end
     start, end_ = end_, start if reverse
 
@@ -128,6 +128,9 @@ class BlizzardBasin
 
     loop do
       @steps += 1
+      puts "(@#{@steps} #{currents.size})" if @steps % 100 == 0 if $sus
+      p currents if currents.size < 10 if $sus
+
       move_blizzards
 
       puts "WAVE curs: #{currents}" if ENV["WAVE"]
@@ -140,11 +143,8 @@ class BlizzardBasin
         pp news
       end
 
-      if reverse
-        return @steps if news.any? { |n| at(n) == 0 }
-      else
-        return @steps if news.include?(end_)
-      end
+      return @steps if news.include?(end_)
+
       break if news.empty?
 
       currents = news
@@ -156,5 +156,10 @@ if $PROGRAM_NAME == __FILE__
   text = File.read(ARGV[0] || "input.txt")
   bb = BlizzardBasin.new(text)
 
-  puts bb.steps_to_end.inspect
+  there = bb.steps_to_end
+  puts there
+
+  back = bb.steps_to_end(reverse: true)
+  again = bb.steps_to_end
+  puts [there, back, again].inspect
 end
