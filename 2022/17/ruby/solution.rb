@@ -171,10 +171,18 @@ class Tetris
     end
   end
 
+  def blocking_pattern?(row)
+    (row & 1 !=0) &&
+      (row & (1 << (WIDTH-1)) != 0)
+  end
+
   # @return nil or a pair (d_tiles_done, d_height) meaning
   #   a state repeats after *d_tiles_done* and the height has increased by *d_height*
   def cache
     top_row = @rows[@height - 1]
+    top_rows = @rows[@height - 9 .. @height - 1]
+    @seen_blocking ||= top_rows && top_rows.any? { |r| blocking_pattern?(r) }
+
     @cache ||= {}
     @cache[@next_tile_i] ||= {}
     @cache[@next_tile_i][@next_instruction] ||= {}
@@ -183,9 +191,6 @@ class Tetris
     # stabilize?
     # && @tiles_landed > 1000
     if seen_height_m1 &&
-       # leftmost and rightmost bits are filled... ensures a cycle?
-       (top_row & 1 !=0) &&
-       (top_row & (1 << (WIDTH-1)) != 0) &&
        !@skip_dump
       puts "previous h-1 #{seen_height_m1}, with [tile,instr,top_row]=#{[@next_tile_i, @next_instruction, top_row].inspect}"
 
@@ -205,7 +210,7 @@ class Tetris
       return cycle
     end
 
-    @cache[@next_tile_i][@next_instruction][top_row] = @height - 1
+    @cache[@next_tile_i][@next_instruction][top_row] = @height - 1 if @seen_blocking
 
     nil
   end
