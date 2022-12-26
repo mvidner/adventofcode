@@ -174,6 +174,8 @@ class Tetris
   # @return nil or a pair (d_tiles_done, d_height) meaning
   #   a state repeats after *d_tiles_done* and the height has increased by *d_height*
   def cache
+    # @skip_dump = true
+
     top_row = @rows[@height - 1]
 
     @cache ||= {}
@@ -181,17 +183,23 @@ class Tetris
     @cache[@next_tile_i][@next_instruction] ||= {}
 
     seen_height_m1 = @cache[@next_tile_i][@next_instruction][top_row]
-    if seen_height_m1 &&
-       !@skip_dump
-      puts "previous h-1 #{seen_height_m1}, with [tile,instr,top_row]=#{[@next_tile_i, @next_instruction, top_row].inspect}"
+    if seen_height_m1
+      if !@skip_dump
+        puts "previous h-1 #{seen_height_m1}, with [tile,instr,top_row]=#{[@next_tile_i, @next_instruction, top_row].inspect}"
 
-      puts "  @instructions_done #{@instructions_done}"
+        puts "  @instructions_done #{@instructions_done}"
+      end
+
       d_height = (@height - 1) - seen_height_m1
       d_tiles_done = @tiles_landed - @rows_birth_tiles_landed[seen_height_m1]
       d_instructions_done = @instructions_done - @rows_birth_instructions_done[seen_height_m1]
-      puts "  h diff #{d_height}"
-      puts "  t diff #{d_tiles_done}"
-      puts "  i diff #{d_instructions_done}"
+
+      if !@skip_dump
+        puts "  h diff #{d_height}"
+        puts "  t diff #{d_tiles_done}"
+        puts "  i diff #{d_instructions_done}"
+      end
+
       return nil if d_instructions_done % @instructions.size != 0
       # p [:sizes,
       #    (seen_height_m1 + 1 .. @height - 1).size,
@@ -208,7 +216,7 @@ class Tetris
 
         return cycle
       else
-        puts "cycle bad"
+        puts "cycle bad" unless @skip_dump
         return nil
       end
     end
@@ -336,7 +344,7 @@ if $PROGRAM_NAME == __FILE__
       rest.times { tetris.drop }
       h2 = tetris.height + h1
       puts "SPEEDUP final"
-      tetris.dump
+      # tetris.dump
       puts "SPEEDUP height #{h2}"
       exit
     end
