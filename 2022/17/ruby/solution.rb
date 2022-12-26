@@ -116,7 +116,8 @@ class Tetris
   # distance of topmost rock from the floor
   attr_reader :height
 
-  def dump_part(rows, visual, row_offset: 0)
+  def dump_part(rows, visual, row_offset: 0, end_after: nil)
+    tired = 0
     dump_padding = visual[0] * WIDTH
     (rows.size - 1).downto(0) do |ri|
       r = rows[ri]
@@ -128,10 +129,12 @@ class Tetris
         birth += " T #{@rows_birth_tiles_landed[ri]}"
       end
       puts "|#{sr}| R #{ri + row_offset}#{birth}"
+      tired += 1
+      break if end_after && tired >= end_after
     end
   end
 
-  def dump
+  def dump(end_after: nil)
     puts "TILE"
     if @tile
       dump_part(@tile, " @", row_offset: @tile_bottom)
@@ -141,8 +144,8 @@ class Tetris
     puts
 
     puts "TOWER"
-    dump_part(@rows, ".#")
-    puts "+#{"-" * WIDTH}+"
+    dump_part(@rows, ".#", end_after: end_after)
+    puts "+#{"-" * WIDTH}+" unless end_after
     puts
   end
 
@@ -177,7 +180,13 @@ class Tetris
     @cache[@next_tile_i][@next_instruction] ||= {}
 
     seen_height_m1 = @cache[@next_tile_i][@next_instruction][top_row]
-    if seen_height_m1 && !@skip_dump
+    # stabilize?
+    # && @tiles_landed > 1000
+    if seen_height_m1 &&
+       # leftmost and rightmost bits are filled... ensures a cycle?
+       (top_row & 1 !=0) &&
+       (top_row & (1 << (WIDTH-1)) != 0) &&
+       !@skip_dump
       puts "previous h-1 #{seen_height_m1}, with [tile,instr,top_row]=#{[@next_tile_i, @next_instruction, top_row].inspect}"
 
       puts "  @instructions_done #{@instructions_done}"
@@ -190,8 +199,8 @@ class Tetris
 
       cycle = [d_tiles_done, d_height]
       # puts "Cycle #{cycle.inspect}"
-      dump unless @skip_dump
-      @skip_dump = true
+      dump(end_after: 10) unless @skip_dump
+      # @skip_dump = true
 
       return cycle
     end
@@ -297,9 +306,10 @@ if $PROGRAM_NAME == __FILE__
   puts
   puts "With caching"
   tetris = Tetris.new(instructions, caching: true)
-  many = 1_000_000_000_000
+
   # many = 2022
   # many = 10_000_000
+  many = 1_000_000_000_000
 
   many.times do |i|
     cycle = tetris.drop
@@ -323,4 +333,5 @@ if $PROGRAM_NAME == __FILE__
       exit
     end
   end
+  puts "Cycle not found, height #{tetris.height}"
 end
