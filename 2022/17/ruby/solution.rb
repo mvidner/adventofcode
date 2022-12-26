@@ -93,9 +93,11 @@ class Tetris
     puts "(with #{instructions.size} instructions)"
     @instructions = instructions
     # grows modulo @instructions
+
     @next_instruction = 0
     # grows by 1
-    @step = 0
+    @instructions_done = 0
+    @tiles_landed = 0
 
     @height = 0
     @next_tile_i = 0
@@ -103,33 +105,43 @@ class Tetris
     # row 0 is bottom
     # row elements are bits as integers, see Tile
     @rows = []
-    # step in which this row was added
-    @rows_birth = []
-    @tile = []
+    # instructions_done in which this row was added
+    @rows_birth_instructions_done = []
+    @rows_birth_tiles_landed = []
+
+    # one of TILES; or nil if the falling one was committed
+    @tile = nil
   end
 
   # distance of topmost rock from the floor
   attr_reader :height
 
-  def dump_part(rows, visual, row_offset: 0, rows_birth: nil)
+  def dump_part(rows, visual, row_offset: 0)
     dump_padding = visual[0] * WIDTH
     (rows.size - 1).downto(0) do |ri|
       r = rows[ri]
       sr = dump_padding + r.to_s(2).tr("01", visual)
       sr = sr[-WIDTH .. -1]
       birth = ""
-      birth = rows_birth[ri + row_offset] if rows_birth
-      puts "|#{sr}| #{ri + row_offset} #{birth}"
+      if row_offset == 0
+        birth += " I #{@rows_birth_instructions_done[ri]}"
+        birth += " T #{@rows_birth_tiles_landed[ri]}"
+      end
+      puts "|#{sr}| R #{ri + row_offset}#{birth}"
     end
   end
 
   def dump
     puts "TILE"
-    dump_part(@tile, " @", row_offset: @tile_bottom)
+    if @tile
+      dump_part(@tile, " @", row_offset: @tile_bottom)
+    else
+      puts "(none)"
+    end
     puts
 
     puts "TOWER"
-    dump_part(@rows, ".#", rows_birth: @rows_birth)
+    dump_part(@rows, ".#")
     puts "+#{"-" * WIDTH}+"
     puts
   end
@@ -137,8 +149,8 @@ class Tetris
   # Drop one tile until it lands
   # using *instructions* on it as it falls
   #
-  # @return nil or a pair (d_instructions, d_height) meaning
-  #   a state repeats after *d_instructions* and the height has increased by *d_height*
+  # @return nil or a pair (d_tiles_done, d_height) meaning
+  #   a state repeats after *d_tiles_done* and the height has increased by *d_height*
   def drop
     spawn
 
@@ -150,36 +162,14 @@ class Tetris
     commit
 
     if @caching
-      cache2
+      cache
     else
       nil
     end
   end
 
-  def cache2
-    return nil unless @next_instruction == 0
-
-    @cache ||= {}
-    @cache[@next_tile_i] ||= {}
-
-    top_row = @rows[@height - 1]
-    seen_height_m1 = @cache[@next_tile_i][top_row]
-
-    if seen_height_m1
-      puts "next_tile_i #{@next_tile_i}"
-      puts "top_row #{top_row}"
-      puts "previous h-1 #{seen_height_m1}"
-
-      dump
-      exit
-    end
-
-    @cache[@next_tile_i][top_row] = @height - 1
-
-    nil
-  end
-  # @return nil or a pair (d_instructions, d_height) meaning
-  #   a state repeats after *d_instructions* and the height has increased by *d_height*
+  # @return nil or a pair (d_tiles_done, d_height) meaning
+  #   a state repeats after *d_tiles_done* and the height has increased by *d_height*
   def cache
     top_row = @rows[@height - 1]
     @cache ||= {}
@@ -188,23 +178,22 @@ class Tetris
 
     seen_height_m1 = @cache[@next_tile_i][@next_instruction][top_row]
     if seen_height_m1 && !@skip_dump
-      p [@next_tile_i, @next_instruction, top_row]
-      puts "previous h-1 #{seen_height_m1}"
+      puts "previous h-1 #{seen_height_m1}, with [tile,instr,top_row]=#{[@next_tile_i, @next_instruction, top_row].inspect}"
+
+      puts "  @instructions_done #{@instructions_done}"
       d_height = (@height - 1) - seen_height_m1
-      puts "diff #{d_height}"
+      d_tiles_done = @tiles_landed - @rows_birth_tiles_landed[seen_height_m1]
+      d_instructions_done = @instructions_done - @rows_birth_instructions_done[seen_height_m1]
+      puts "  h diff #{d_height}"
+      puts "  t diff #{d_tiles_done}"
+      puts "  i diff #{d_instructions_done}"
 
-      puts "@step #{@step}"
+      cycle = [d_tiles_done, d_height]
+      # puts "Cycle #{cycle.inspect}"
+      dump unless @skip_dump
+      @skip_dump = true
 
-      d_instructions = @step - @rows_birth[seen_height_m1]
-      if d_instructions >= @instructions.size
-        cycle = [d_instructions, d_height]
-        puts "Cycle #{cycle.inspect}"
-        dump unless @skip_dump
-        # @skip_dump = true
-        return cycle
-      else
-        puts "false cycle"
-      end
+      return cycle
     end
 
     @cache[@next_tile_i][@next_instruction][top_row] = @height - 1
@@ -217,8 +206,6 @@ class Tetris
   end
 
   def spawn
-    @step += 1
-
     @tile = TILES[@next_tile_i]
     @next_tile_i = (@next_tile_i + 1) % TILES.size
 
@@ -231,7 +218,7 @@ class Tetris
   def push
     instruction = @instructions[@next_instruction]
     @next_instruction = (@next_instruction + 1) % @instructions.size
-
+    @instructions_done += 1
 
     t = @tile.shift_right(instruction == ">" ? 1 : -1, WIDTH)
 
@@ -270,11 +257,13 @@ class Tetris
   end
 
   def commit
+    @tiles_landed += 1
     # add rows if needed
     add = @tile_bottom + @tile.size - @height
     if add > 0
       @rows.concat(Array.new(add, 0))
-      @rows_birth.concat(Array.new(add, @step))
+      @rows_birth_instructions_done.concat(Array.new(add, @instructions_done))
+      @rows_birth_tiles_landed.concat(Array.new(add, @tiles_landed))
       @height += add
     end
 
@@ -282,6 +271,8 @@ class Tetris
     @tile.each_with_index do |tr, tri|
       @rows[tri + @tile_bottom] |= tr
     end
+
+    @tile = nil
   end
 end
 
@@ -306,19 +297,20 @@ if $PROGRAM_NAME == __FILE__
   puts
   puts "With caching"
   tetris = Tetris.new(instructions, caching: true)
-  # many = 1_000_000_000_000
-  many = 2022
-  many = 10_000_000
+  many = 1_000_000_000_000
+  # many = 2022
+  # many = 10_000_000
 
   many.times do |i|
     cycle = tetris.drop
     if cycle
+      puts "I #{i}"
       #  (------------- i ------------)
       #  (~~start~~~)(.....d_instructions....)
-      d_instructions, d_height = cycle
+      d_tiles_done, d_height = cycle
 
       # should be returning INSTEAD of performing the drop
-      repeat, rest = (many - i).divmod(d_instructions)
+      repeat, rest = (many - (i + 1)).divmod(d_tiles_done)
       # h0 = tetris.height
       h1 = repeat * d_height
 
