@@ -41,6 +41,16 @@ class Graph
     valves.each { |v| @valves[v.name] = v }
   end
 
+  def subgraph(names)
+    names = names.to_set
+    new_valves_a = names.map do |n|
+      v = valves[n]
+      new_tunnels = v.tunnels.find_all { |t| names.include?(t.dest) }
+      Valve.new(v.name, v.rate, new_tunnels)
+    end
+    Graph.new(new_valves_a)
+  end
+
   def prune_zero_vertices
     # first disconnect the zeros...
     valves.each do |k, v|
@@ -190,9 +200,11 @@ if $PROGRAM_NAME == __FILE__
 
   g = Graph.new(valves)
   g.prune_zero_vertices
-  File.write(arg + ".dot", g.to_dot)
+  # File.write(arg + ".dot", g.to_dot)
 
   # g.appraise_vertices("AA", 30)
   g.complete
-  pp g
+
+  g2 = g.subgraph(["AA", "DD", "JJ"])
+  p g2
 end
