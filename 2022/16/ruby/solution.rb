@@ -1,17 +1,22 @@
 #!/usr/bin/env ruby
 require "set"
 
+Tunnel = Struct.new(:dest, :len) do
+  def inspect
+    "(#{len})->#{dest}"
+  end
+end
+
 # name [String]
 # rate [Integer]
-# tunnels [Array<Array(String,Integer)>] pairs destination, distance
+# tunnels [Array<Tunnel>]
 Valve = Struct.new(:name, :rate, :tunnels) do
   PATTERN = /Valve (\S+) has flow rate=(\d+); tunnels? leads? to valves? (.*)/
   def self.parse(line)
     line =~ PATTERN or raise line
     name = $1
     rate = $2.to_i # forgot it AGAIN
-    tunnels = $3.split(", ").map { |dest| [dest, 1] }
-    new(name, rate, tunnels)
+    tunnels = $3.split(", ").map { |dest| Tunnel[dest, 1] }
     v = new(name, rate, tunnels)
     # puts v
     # p v
@@ -44,18 +49,18 @@ class Graph
       case v.tunnels.size
       when 1
         # leaf zero
-        v2 = valves[v.tunnels[0].first]
+        v2 = valves[v.tunnels[0].dest]
         v2.tunnels.reject! { |d, _len| d == k }
 
         v.tunnels = []
       when 2
-        v2 = valves[v.tunnels[0].first]
-        v3 = valves[v.tunnels[1].first]
+        v2 = valves[v.tunnels[0].dest]
+        v3 = valves[v.tunnels[1].dest]
 
         # t2 is a pair, mutate it in place
-        t2 = v2.tunnels.find { |t| t.first == k }
-        t3 = v3.tunnels.find { |t| t.first == k }
-        new_len = t2.last + t3.last
+        t2 = v2.tunnels.find { |t| t.dest == k }
+        t3 = v3.tunnels.find { |t| t.dest == k }
+        new_len = t2.len + t3.len
 
         t2[0] = v3.name
         t2[1] = new_len
@@ -76,7 +81,8 @@ class Graph
     dot = "graph g {\n"
     valves.each do |_k, v|
       dot << "  #{v.name}[label=\"#{v.name} #{v.rate}\"];\n"
-      v.tunnels.each do |v2, dist|
+      v.tunnels.each do |t|
+        v2, dist = t.dest, t.len
         dot << "    #{v.name} -- #{v2} [label=\"#{dist}\"];\n" if v.name <= v2
       end
     end
@@ -97,7 +103,8 @@ class Graph
     values = {}
 
     v = valves[start_name]
-    v.tunnels.each do |dest, len|
+    v.tunnels.each do |t|
+      dest, len = t.dest, t.len
       time_left = time_remaining - len - 1 # get there + 1 open it
       time_left = 0 if time_left < 0
 
@@ -132,15 +139,15 @@ class Graph
 
     loop do
       news = wave(olds, currents) do |cur|
-        valves[cur].tunnels.map do |dest, len|
-          v2 = valves[dest]
+        valves[cur].tunnels.map do |t|
+          v2 = valves[t.dest]
 
-          new_len = direct_lengths[cur] + len
-          if !direct_lengths[dest] || direct_lengths[dest] > new_len
-            direct_lengths[dest] = new_len
+          new_len = direct_lengths[cur] + t.len
+          if !direct_lengths[t.dest] || direct_lengths[t.dest] > new_len
+            direct_lengths[t.dest] = new_len
           end
 
-          dest
+          t.dest
         end
       end
       # print "New: "
@@ -155,7 +162,7 @@ class Graph
     end
     p direct_lengths
     direct_lengths.delete(start_name)
-    valves[start_name].tunnels = direct_lengths.map { |dest, len| [dest, len] }
+    valves[start_name].tunnels = direct_lengths.map { |dest, len| Tunnel[dest, len] }
   end
 
   # olds currents and news are sets
