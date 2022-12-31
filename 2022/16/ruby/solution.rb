@@ -12,6 +12,19 @@ Valve = Struct.new(:name, :rate, :tunnels) do
     rate = $2.to_i # forgot it AGAIN
     tunnels = $3.split(", ").map { |dest| [dest, 1] }
     new(name, rate, tunnels)
+    v = new(name, rate, tunnels)
+    # puts v
+    # p v
+    # pp v
+    v
+  end
+
+  def inspect
+    "#i<V #{name} #{rate} #{tunnels}>"
+  end
+
+  def to_s
+    "#s<V #{name} #{rate} #{tunnels}>"
   end
 end
 
