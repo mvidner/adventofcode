@@ -191,8 +191,16 @@ class Graph
 
   # @return [Array(Numeric,Array<String>)] value, valve_order
   def solve(start_n:, minutes:)
-    solve_with_permutations(start_n: start_n, minutes: minutes)
+    # solve_with_permutations(start_n: start_n, minutes: minutes)
+    solve_dfs(
+      minutes: minutes,
+      already_committed: 0,
+      already_open_a: [start_n],
+      todo: valves.keys.to_a - [start_n]
+    )
   end
+
+  MIL = 1_000_000
 
   # needs a complete graph
   # @return [Array(Numeric,Array<String>)] value, valve_order
@@ -205,10 +213,9 @@ class Graph
     max_path = nil
     perms = v_names.permutation
     todo = perms.size
-    mil = 1_000_000
     perms.each_with_index do |v_order, i|
-      $sus = i % mil == 0
-      puts "i #{i/mil.to_f}M of #{todo/mil.to_f}M" if $sus
+      $sus = i % MIL == 0
+      puts "i #{i/MIL.to_f}M of #{todo/MIL.to_f}M" if $sus
 
       result = walk([start_n] + v_order, minutes: minutes)
       puts "#{result} <- #{v_order}\n\n" if $sus
@@ -218,6 +225,52 @@ class Graph
       end
     end
     [max, max_path]
+  end
+
+  # @param already_open_a [Array<String>] names of already open valves, in order, and we are standing at the last of them
+  # @param already_committed [Numeric] how much *already_open_a* will comtribute to the solution
+  # @param minutes [Numeric] minutes left
+  # @param todo names of valves left to do
+  #
+  # How do we reduce run time? if <=0 minutes are left, skip exploring *todo*
+  #
+  # @return [Array(Numeric,Array<String>)] value, valve_order
+  def solve_dfs(minutes:, already_committed:, already_open_a:, todo:)
+    puts "DFS: #{minutes}, #{already_committed}, #{already_open_a}, #{todo}"
+
+    return [already_committed, already_open_a] if minutes <= 0
+    return [already_committed, already_open_a] if todo.empty?
+
+    this_n = already_open_a.last
+    v = valves[this_n]
+
+    # unspecified order, no heuristic
+    results = todo.map do |next_n|
+      # go there...
+      # SLOW
+      t = v.tunnels.find { |t| t.dest == next_n }
+      minutes_left = minutes - t.len
+      next [already_committed, already_open_a] if minutes_left <= 0
+
+      # ... open it ...
+      nextv = valves[next_n]
+      minutes_left -= 1
+      next [already_committed, already_open_a] if minutes_left <= 0
+
+      contribution = minutes_left * nextv.rate
+
+      # ... recurse
+      value, order = solve_dfs(minutes: minutes_left,
+                               already_committed: already_committed + contribution,
+                               already_open_a: already_open_a + [next_n],
+                               todo: todo - [next_n]
+                              )
+
+      [value, order]
+    end
+
+    result = results.max_by { |e| e.first }
+
   end
 
   def walk(v_order, minutes:)
@@ -271,7 +324,7 @@ if $PROGRAM_NAME == __FILE__
 
   # g2 = g.subgraph(["AA", "DD", "JJ"])
   # result = g2.solve(start_n: "AA", minutes: 7)
-  g = g.subgraph(g.valves.keys.take(12))
+  # g = g.subgraph(g.valves.keys.take(12))
   result = g.solve(start_n: "AA", minutes: 30)
   puts "Best result: #{result.inspect}"
 end
