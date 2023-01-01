@@ -130,7 +130,7 @@ class Graph
 
   def complete
     valves.each do |k, _v|
-      puts "From #{k}"
+      # puts "From #{k}"
       add_tunnels_from(k)
     end
   end
@@ -170,7 +170,7 @@ class Graph
       olds = olds | currents
       currents = news
     end
-    p direct_lengths
+    # p direct_lengths
     direct_lengths.delete(start_name)
     valves[start_name].tunnels = direct_lengths.map { |dest, len| Tunnel[dest, len] }
   end
@@ -189,6 +189,69 @@ class Graph
     news
   end
 
+  # @return [Array(Numeric,Array<String>)] value, valve_order
+  def solve(start_n:, minutes:)
+    solve_with_permutations(start_n: start_n, minutes: minutes)
+  end
+
+  # needs a complete graph
+  # @return [Array(Numeric,Array<String>)] value, valve_order
+  def solve_with_permutations(start_n:, minutes:)
+    raise ArgumentError, "#{start_n.inspect} not among vertex names" unless valves.key?(start_n)
+
+    v_names = valves.keys.to_a - [start_n]
+
+    max = -1
+    max_path = nil
+    perms = v_names.permutation
+    todo = perms.size
+    mil = 1_000_000
+    perms.each_with_index do |v_order, i|
+      $sus = i % mil == 0
+      puts "i #{i/mil.to_f}M of #{todo/mil.to_f}M" if $sus
+
+      result = walk([start_n] + v_order, minutes: minutes)
+      puts "#{result} <- #{v_order}\n\n" if $sus
+      if result >= max
+        max = result
+        max_path = [start_n] + v_order
+      end
+    end
+    [max, max_path]
+  end
+
+  def walk(v_order, minutes:)
+    total = 0
+    minutes_left = minutes
+
+    (v_order + [nil]).each_cons(2) do |this_n, next_n|
+      v = valves[this_n]
+      # open *v* (unless its rate is 0; we start at such AA)
+      if v.rate == 0
+        puts "#{this_n}: skipping, rate 0" if $sus
+      else
+        minutes_left -= 1
+        if minutes_left <= 0
+          puts "timeout at opening #{this_n}" if $sus
+          return total
+        end
+        contribution = minutes_left * v.rate
+        puts "#{this_n}: #{contribution} = #{minutes_left} * #{v.rate}" if $sus
+        total += contribution
+      end
+
+      break if next_n.nil?
+
+      t = v.tunnels.find { |t| t.dest == next_n }
+      minutes_left -= t.len
+      if minutes_left <= 0
+        puts "timeout at travel to #{next_n}" if $sus
+        return total
+      end
+    end
+
+    total
+  end
 end
 
 if $PROGRAM_NAME == __FILE__
@@ -196,15 +259,19 @@ if $PROGRAM_NAME == __FILE__
   text = File.read(arg)
 
   valves = text.lines.map {|line| Valve.parse(line) }
-  puts "#{valves.size} valves"
+  # puts "#{valves.size} valves"
 
   g = Graph.new(valves)
   g.prune_zero_vertices
+  puts "#{g.valves.size} valves after pruning"
   # File.write(arg + ".dot", g.to_dot)
 
   # g.appraise_vertices("AA", 30)
   g.complete
 
-  g2 = g.subgraph(["AA", "DD", "JJ"])
-  p g2
+  # g2 = g.subgraph(["AA", "DD", "JJ"])
+  # result = g2.solve(start_n: "AA", minutes: 7)
+  g = g.subgraph(g.valves.keys.take(12))
+  result = g.solve(start_n: "AA", minutes: 30)
+  puts "Best result: #{result.inspect}"
 end
