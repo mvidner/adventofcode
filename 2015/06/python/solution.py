@@ -43,6 +43,16 @@ class Lights(object):
     def lit(self):
         return sum([sum(row) for row in self.lights])
 
+class Lights2(Lights):
+    def turn_on(self, r, c):
+        self.lights[r][c] += 1
+
+    def turn_off(self, r, c):
+        self.lights[r][c] = max(0, self.lights[r][c] - 1)
+
+    def toggle(self, r, c):
+        self.lights[r][c] += 2
+
 if __name__ == '__main__':
     fn = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
     with open(fn) as f:
@@ -52,3 +62,9 @@ if __name__ == '__main__':
 
     print("Part 1, number of lights lit")
     print(sol.lit())
+
+    sol2 = Lights2()
+    sol2.process(input)
+
+    print("Part 2, brightness with modified meaning")
+    print(sol2.lit())
