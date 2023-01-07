@@ -5,10 +5,8 @@ import re
 class Lights(object):
     def __init__(self):
         size = 1000
-        self.lights = [
-            [False for _ in range(size)]
-            for _ in range(size)
-        ]
+        make_row = lambda: [0 for _ in range(size)]
+        self.lights = [make_row() for _ in range(size)]
 
     def process(self, input):
         insns = input.strip().split("\n")
@@ -17,25 +15,33 @@ class Lights(object):
             m = re.fullmatch(r"(\D+) (\d+),(\d+) through (\d+),(\d+)", insn)
             if m:
                 verb = m.group(1)
+                if verb == "turn on":
+                    action = self.turn_on
+                elif verb == "turn off":
+                    action = self.turn_off
+                elif verb == "toggle":
+                    action = self.toggle
+                else:
+                    raise RuntimeError("bad verb")
+
                 (ar, ac, br, bc) = [int(i) for i in m.groups()[1:]]
                 for r in range(ar, br+1):
                     for c in range(ac, bc+1):
-                        if verb == "turn on":
-                            self.lights[r][c] = True
-                        elif verb == "turn off":
-                            self.lights[r][c] = False
-                        elif verb == "toggle":
-                            self.lights[r][c] = not self.lights[r][c]
-                        else:
-                            raise RuntimeError("bad verb")
+                        action(r, c)
             else:
                 raise RuntimeError("bad insn")
 
+    def turn_on(self, r, c):
+        self.lights[r][c] = 1
+
+    def turn_off(self, r, c):
+        self.lights[r][c] = 0
+
+    def toggle(self, r, c):
+        self.lights[r][c] = 1 - self.lights[r][c]
+
     def lit(self):
-        return sum([
-            sum([1 if e else 0 for e in row])
-            for row in self.lights
-        ])
+        return sum([sum(row) for row in self.lights])
 
 if __name__ == '__main__':
     fn = sys.argv[1] if len(sys.argv) > 1 else "input.txt"
