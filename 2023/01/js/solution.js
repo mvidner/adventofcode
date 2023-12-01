@@ -32,6 +32,7 @@ const digits = {
 }
 
 const digitWords = Object.keys(digits);
+const digitChars = digitWords.map(dw => { return digits[dw].toString(); } )
 
 function digitToInt(s) {
     if (s.length === 1) {
@@ -56,11 +57,21 @@ function firstDigit2(line) {
 }
 
 function lastDigit2(line) {
-    const ds = digits2(line);
-    if (ds === null) {
+    const a1 = digitWords.map(dw => {
+        return [line.lastIndexOf(dw), digits[dw]];
+    });
+    const a2 = digitChars.map(dc => {
+        return [line.lastIndexOf(dc), Number.parseInt(dc)];
+    });
+    const a = a1.concat(a2);
+    const maxPair = a.reduce(function (p, v) {
+        return ( p[0] > v[0] ? p : v );
+    });
+    // console.log(line, a, maxPair);
+    if (maxPair[0] === -1) {
         return null;
     }
-    return digitToInt(ds[ds.length - 1]);
+    return maxPair[1];
 }
 
 function solve2(lines) {
