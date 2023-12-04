@@ -19,6 +19,7 @@ function inputLines() {
 class Card {
     // id: integer; lists of integers
     constructor(id, winning, mine) {
+        this.copies = 1;
         this.id = id
         this.winning = winning;
         this.mine = mine;
@@ -46,7 +47,7 @@ class Card {
         return stringNums.map(s => Number.parseInt(s));
     }
 
-    score() {
+    correct() {
         const ws = new Set(this.winning);
         const ms = new Set(this.mine);
         // WTF, not implemented yet??
@@ -57,7 +58,11 @@ class Card {
                 correctCount += 1;
             }
         });
+        return correctCount;
+    }
 
+    score() {
+        const correctCount = this.correct();
         if (correctCount === 0) {
             return 0;
         }
@@ -74,7 +79,21 @@ function solve(cards) {
     console.log("total score", totalScore);
 }
 
+function solve2(cards) {
+    for (let i = 0; i < cards.length; ++i) {
+        const cc = cards[i].correct();
+        for (let j = i + 1; j < i + 1 + cc; ++j) {
+            cards[j].copies += cards[i].copies;
+        }
+    }
+    const scores = cards.map(c => { return c.copies});
+    // console.log(scores);
+    const totalScore = scores.reduce((i, a) => (i+a));
+    console.log("total copies", totalScore);
+}
+
 const lines = inputLines();
 // bug: map(line => Card.parse) does not do what I want
 const cards = lines.map(line => { return Card.parse(line) });
 solve(cards);
+solve2(cards);
