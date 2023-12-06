@@ -46,8 +46,8 @@ function parseNums(s) {
 }
 
 function parse(lines) {
-    let match0 = lines[0].match(/Time:\s+(.*)/);
-    let match1 = lines[1].match(/Distance:\s+(.*)/);
+    let match0 = lines[0].match(/Time:\s*(.*)/);
+    let match1 = lines[1].match(/Distance:\s*(.*)/);
     let times = parseNums(match0[1]);
     let distances = parseNums(match1[1]);
 
@@ -66,5 +66,8 @@ function solve(races) {
 
 const lines = inputLines();
 const races = parse(lines);
-
 solve(races);
+
+const kernedLines = lines.map(l => (l.replaceAll(" ", "")));
+const bigRace = parse(kernedLines);
+solve(bigRace);
