@@ -98,15 +98,36 @@ class Almanac {
     }
 
     solve() {
-        // why can't I use just Math.min in reduce?
-        const pairMin = (a, b) => Math.min(a, b);
         const locations = this.seeds.map(n => this.map(n));
 
+        // why can't I use just Math.min in reduce?
+        const pairMin = (a, b) => Math.min(a, b);
         const minLoc = locations.reduce(pairMin);
-        console.log("mininal location", minLoc);
+
+        console.log("minimal location", minLoc);
+    }
+
+    // now this.seeds is interpreted as pairs (start, length)
+    solve2() {
+        let minLoc = Infinity;
+
+        console.log("seed ranges", this.seeds);
+        for (let i = 0; i < this.seeds.length; i += 2) {
+            const sstart = this.seeds[i];
+            const slen = this.seeds[i + 1];
+            console.log("processing from", sstart, "of size", slen);
+
+            for (let j = sstart; j < sstart + slen; ++j) {
+                const loc = this.map(j);
+                minLoc = Math.min(minLoc, loc);
+            }
+        }
+
+        console.log("minimal location", minLoc);
     }
 }
 
 const lines = inputLines();
 const almanac = Almanac.parse(lines);
 almanac.solve();
+almanac.solve2();
