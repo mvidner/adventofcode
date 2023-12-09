@@ -38,6 +38,17 @@ class Sequence {
         }
     }
 
+    extrapolate_back() {
+        if (this.ns.every(n => (n === 0))) {
+            return 0;
+        }
+        else {
+            const diffs = this.differences();
+            const delta = diffs.extrapolate_back();
+            return this.ns[0] - delta;
+        }
+    }
+
     differences() {
         let ds = [];
         for (let i = 1; i < this.ns.length; ++i) {
@@ -57,6 +68,13 @@ function solve(sequences) {
     console.log("sum of extrapolated values", s);
 }
 
+function solve_back(sequences) {
+    const nexts = sequences.map(seq => (seq.extrapolate_back()));
+    const s = sum(nexts);
+    console.log("sum of back-extrapolated values", s);
+}
+
 const lines = inputLines();
 const sequences = lines.map(l => (new Sequence(parseNums(l))));
 solve(sequences);
+solve_back(sequences);
