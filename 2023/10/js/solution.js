@@ -21,6 +21,7 @@ class PipeMaze {
     constructor(lines) {
         this.rows = PipeMaze.parse(lines);
         this.start = this.findStart();
+        this.connectStart();
     }
 
     static parse(lines) {
@@ -73,6 +74,11 @@ class PipeMaze {
     // Not needed. just need to find its connected neighbors.
     // connectStart() {...}
 
+    // Fake!
+    connectStart() {
+        // true for my input and all examples but the last
+        this.start.ch = "F";
+    }
     // return array of cells connected to Start
     startNeighbors() {
         // const [sr, sc] = [this.sr, this.sc];
@@ -95,9 +101,21 @@ class PipeMaze {
         return startNs;
     }
 
+    show() {
+        const cellChar = (cell) => {
+            return cell.isMainLoop ? cell.ch : ".";
+        }
+        this.rows.forEach(row => {
+            const s = row.map(cellChar).join("");
+            console.log(s);
+        });
+    }
+
+    // solve part 1 but also mark the cells that ARE on the main loop
     solve() {
         const sNs = this.startNeighbors();
 
+        this.start.isMainLoop = true;
         let steps = 0;
         let prev = this.start;
         // any of the pair will do
@@ -109,12 +127,64 @@ class PipeMaze {
             // console.log(ns);
             const next = ns.find((cell) => (cell !== prev));
 
+            cur.isMainLoop = true;
             prev = cur;
             cur = next;
             steps +=1 ;
         }
         const maxSteps = (steps + 1) / 2.0;
         console.log("furthest steps", maxSteps);
+    }
+
+    solve2() {
+        let insideCount = 0;
+        this.rows.forEach(row => {
+            // let verticalCount = 0;
+            let isInside = false;
+            let isEdge = false;
+            let edgeVertDelta;
+            // console.log("row", row[0].r);
+
+            for (let c = 0; c < row.length; ++c) {
+                const cell = row[c];
+                if (cell.isMainLoop) {
+                    // console.log(cell.ch)
+                    // "S" is assumed to not be a "-"
+                    // if (cell.ch !== "-") {
+                    if (cell.ch === "|") {
+                        isInside = !isInside;
+                        isEdge = false;
+                        // console.log("vert, in", isInside, "c", c);
+                    }
+                    else if (cell.ch !== "-") { // if corner
+                        if (!isEdge) {
+                            // neighborDeltas always returns the vertical
+                            // delta first
+                            edgeVertDelta = cell.neighborDeltas()[0][0];
+                            // console.log("eVD", edgeVertDelta);
+                        }
+                        else {
+                            const newEdgeVertDelta = cell.neighborDeltas()[0][0];
+                            // console.log("nEVD", newEdgeVertDelta);
+                            if (edgeVertDelta !== newEdgeVertDelta) {
+                                // edge has flipped us
+                                isInside = !isInside;
+                            }
+                        }
+                        isEdge = !isEdge;
+                        // console.log("corner, edge", isEdge, "in", isInside, "c", c);
+                    }
+                }
+                else {
+                    if (isInside && !isEdge) {
+                        // console.log("INSIDE, c", c);
+                        insideCount += 1;
+                    }
+                }
+            }
+
+        });
+        console.log("inside count", insideCount);
     }
 }
 
@@ -165,3 +235,5 @@ const lines = inputLines();
 const maze = new PipeMaze(lines);
 // console.log(maze);
 maze.solve();
+maze.show();
+maze.solve2();

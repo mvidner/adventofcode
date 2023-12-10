@@ -3,7 +3,6 @@ all: .js
 
 .js:
 	@echo; echo Javascript
-	if test -f sample.txt; then js/solution.js sample.txt; fi
-	if test -f sample2.txt; then js/solution.js sample2.txt; fi
+	for f in sample*.txt; do echo; echo $$f; js/solution.js $$f; done
 	js/solution.js
 
