@@ -111,6 +111,27 @@ class PipeMaze {
         });
     }
 
+    prettyShow() {
+        const prettyChar = {
+            "F": "╭",
+            "|": "│",
+            "L": "╰",
+            "-": "─",
+            "7": "╮",
+            "J": "╯",
+            ".": " ",
+        }
+        const cellChar = (cell) => {
+            const ch = cell.isMainLoop ? cell.ch : ".";
+            return prettyChar[ch];
+        }
+
+        this.rows.forEach(row => {
+            const s = row.map(cellChar).join("");
+            console.log(s);
+        });
+    }
+
     // solve part 1 but also mark the cells that ARE on the main loop
     solve() {
         const sNs = this.startNeighbors();
@@ -195,6 +216,16 @@ const d_down = [1, 0];
 const d_left = [0, -1];
 const d_right = [0, 1];
 
+const neighbor_deltas = {
+    "L": [d_up, d_right],
+    "J": [d_up, d_left],
+    "7": [d_down, d_left],
+    "F": [d_down, d_right],
+    "|": [d_down, d_up],
+    "-": [d_left, d_right],
+    ".": []
+}
+
 class Cell {
     // char ch: L J F 7 - | . S
     constructor(ch, r, c) {
@@ -205,29 +236,7 @@ class Cell {
 
     // return a pair of neighbor deltas
     neighborDeltas() {
-        if (this.ch === "L") {
-            return [d_up, d_right];
-        }
-        else if(this.ch === "J") {
-            return [d_up, d_left];
-        }
-        else if(this.ch === "7") {
-            return [d_down, d_left];
-        }
-        else if(this.ch === "F") {
-            return [d_down, d_right];
-        }
-        else if(this.ch === "|") {
-            return [d_down, d_up];
-        }
-        else if(this.ch === "-") {
-            return [d_left, d_right];
-        }
-        else if(this.ch === ".") {
-            return [];
-        }
-        // others could return [] but our algorithm will not need it
-        return undefined;
+        return neighbor_deltas[this.ch];
     }
 }
 
@@ -235,5 +244,5 @@ const lines = inputLines();
 const maze = new PipeMaze(lines);
 // console.log(maze);
 maze.solve();
-maze.show();
+maze.prettyShow();
 maze.solve2();
