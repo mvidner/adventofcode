@@ -12,11 +12,20 @@ def invalid_id?(integer)
   s =~ /\A(\d+)\1\Z/
 end
 
-# stupid iteration
-def sum_invalid_ids(range)
-  range.map { |i| invalid_id?(i) ? i : 0 }.sum
+def better_invalid_id?(integer)
+  s = integer.to_s
+  s =~ /\A(\d+)\1+\Z/
 end
 
-total_invalid_ids = data.map { |r| sum_invalid_ids(r) }.sum
+# stupid iteration
+def sum_invalid_ids(data, invalid_method)
+  data.map do |range|
+    range.map { |i| __send__(invalid_method, i) ? i : 0 }.sum
+  end.sum
+end
 
+total_invalid_ids = sum_invalid_ids(data, :invalid_id?)
 puts "Sum of invalid ids: #{total_invalid_ids}"
+
+better_total_invalid_ids = sum_invalid_ids(data, :better_invalid_id?)
+puts "Better sum of invalid ids: #{better_total_invalid_ids}"
