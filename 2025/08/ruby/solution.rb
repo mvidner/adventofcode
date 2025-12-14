@@ -1,4 +1,5 @@
 #!/usr/bin/env ruby
+require "set"
 
 Point = Struct.new(:x, :y, :z) do
   include Comparable
@@ -16,10 +17,6 @@ Point = Struct.new(:x, :y, :z) do
 
   def distance_squared(other)
     (x - other.x)**2 + (y - other.y)**2 + (z - other.z)**2
-  end
-
-  def distance(other)
-    Math.sqrt(distance_squared(other))
   end
 end
 
@@ -72,7 +69,8 @@ class Points
   end
 
   # Take the next shortest distance and try connecting it
-  # @return true if a connection was made, false if the points were already connected
+  # @return true if a connection was made, false if the points were already connected,
+  #   or a point pair if all the points get connected
   def try_next_connection
     _d, a, b = @sq_distances.shift # TODO: what if exhausted
 
@@ -98,17 +96,25 @@ class Points
       cb.each do |point|
         @points_to_circuits[point] = ca
       end
+      # what if this completes the graph?
     elsif ca.nil?
-      puts "Add a to cb" if $DEBUG
-      cb << a
-      @points_to_circuits[a] = cb
+      done = add_point_to_circuit(a, cb)
+      return [a, b] if done
     else # cb.nil?
-      puts "Add b to ca" if $DEBUG
-      ca << b
-      @points_to_circuits[b] = ca
+      done = add_point_to_circuit(b, ca)
+      return [a, b] if done
     end
 
     true
+  end
+
+  # @return true if this ends up with a single circuit
+  def add_point_to_circuit(point, circuit)
+    puts "Add point to circuit" if $DEBUG
+    circuit << point
+    @points_to_circuits[point] = circuit
+    puts " points in crcuits: #{@points_to_circuits.size}/#{@points.size}" if $DEBUG
+    @points_to_circuits.size == @points.size
   end
 
   # multiply the sizes of the `num` largest circuits
@@ -123,10 +129,16 @@ if $PROGRAM_NAME == __FILE__
   count = 1000
   count = 10 if ARGV[0] == "sample.txt"
 
-  count.times do |i|
-    puts "Connection #{i + 1}" if $DEBUG
-    ps.try_next_connection
+  (1..Float::INFINITY).each do |i|
+    puts "Connection #{i}" if $DEBUG
+    result = ps.try_next_connection
+    if result.is_a? Array
+      a, b = result
+      puts "Last connection X product: #{a.x * b.x}"
+      break
+    end
+
+    ps.print_circuit_signature(3) if i == count
   end
 
-  ps.print_circuit_signature(3)
 end
