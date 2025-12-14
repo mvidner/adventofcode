@@ -46,36 +46,50 @@ end
 
 # copied from 2022/15
 class IntegerSet
+  # inclusive non-overlapping ranges, ordered (sorted)
   attr_reader :ranges
 
   def initialize(ranges = [])
-    # inclusive non-overlapping ranges, ordered
     @ranges = ranges
   end
-
-  # @param other [Enumerable,IntegerSet]
-  # def union(other); end
 
   def merge(range)
     # puts "merge(#{range} into #{@ranges.inspect})"
     return self if range.size == 0
 
+    # Key insight: as @ranges and @new are sorted,
+    # all items of @new come before the items of @ranges,
+    # except for their last and first items respectively,
+    # and that is where the individual merge2 is called.
+
+    # @new maintains the same invariant as @ranges
     @new = [range]
+
+    # This is the only time where the `r` to be merged
+    # may be entirely smaller than the last element of `@new`.
+
     @ranges.each do |r|
       last = @new.pop
       merged_pair = merge2(r, last)
       @new.push(* merged_pair)
+
+      # From now on, the incoming `r` will always be no smaller
+      # than the beginning of the last range in `@new`
     end
 
     @ranges = @new
     self
   end
 
-  # @return array of ranges, having 1 or 2 elements
+  def size
+    @ranges.map(&:size).sum
+  end
+
+  private
+
+  # @return a sorted array of ranges, having 1 or 2 elements
   def merge2(r1, r2)
-    if r1.begin > r2.begin
-      r1, r2 = r2, r1
-    end
+    r1, r2 = r2, r1 if r1.begin > r2.begin
     # r1.begin is minimal
 
     # not overlapping?
@@ -84,39 +98,6 @@ class IntegerSet
     else
       [(r1.begin .. [r1.end, r2.end].max)]
     end
-  end
-
-  # @return array of ranges, having 0 or 1 elements
-  def intersect2(r1, r2)
-    # print "intersect2 #{r1} and #{r2}"
-    if r1.begin > r2.begin
-      r1, r2 = r2, r1
-    end
-    # r1.begin is minimal
-
-    # not overlapping?
-    ret = if r2.begin > r1.end
-      []
-    else
-      [([r1.begin, r2.begin].max .. [r1.end, r2.end].min)]
-    end
-    # puts "-> #{ret}"
-    ret
-  end
-
-  # @return {IntegerSet}
-  def intersection(range)
-    # puts "intersection #{range} and #{@ranges}"
-    new_new = @ranges.map do |r|
-      intersect2(r, range)
-    end
-    ranges = new_new.flatten(1)
-
-    IntegerSet.new(ranges)
-  end
-
-  def size
-    @ranges.map(&:size).sum
   end
 end
 
