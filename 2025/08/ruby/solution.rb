@@ -96,7 +96,10 @@ class Points
       cb.each do |point|
         @points_to_circuits[point] = ca
       end
-      # what if this completes the graph?
+
+      puts " points in crcuits: #{@points_to_circuits.size}/#{@points.size}" if $DEBUG
+      # this is still wrong if there are three sets of distant pairs :(
+      return [a, b] if @points_to_circuits.size == @points.size
     elsif ca.nil?
       done = add_point_to_circuit(a, cb)
       return [a, b] if done
