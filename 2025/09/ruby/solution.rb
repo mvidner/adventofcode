@@ -185,9 +185,10 @@ class Floor < OrthogonalPolygon
 
   def max_red_area_within_green
     max = 0
+    rectangles_with_corners_inside = []
 
     @points.each_with_index do |a, ai|
-      puts ai
+      # puts ai
       @points.each do |b|
         next if a >= b
 
@@ -195,23 +196,30 @@ class Floor < OrthogonalPolygon
         corners = a.rectangle_corners(b)
         next if corners.any? { |p| !inside?(p) }
 
-        xrange = Range.new(* [a.x, b.x].sort)
-        next if xrange.to_a.shuffle.any? do |x|
-          !inside?(Point.new(x, a.y)) || !inside?(Point.new(x, b.y))
-        end
-
-        yrange = Range.new(* [a.y, b.y].sort)
-        next if yrange.to_a.shuffle.any? do |y|
-          !inside?(Point.new(a.x, y)) || !inside?(Point.new(b.x, y))
-        end
-
         area = a.rectangle_area(b)
-        puts " inside, area is #{area}" if $DEBUG
-        max = area if max < area
+        puts " corners inside, area is #{area}" if $DEBUG
+        rectangles_with_corners_inside << [a, b, area]
       end
     end
 
-    max
+    rectangles_with_corners_inside.sort_by! { |_, _, area| -area }
+    puts "Candidate rectangles found: #{rectangles_with_corners_inside.size}"
+
+    rectangles_with_corners_inside.each do |a, b, area|
+      print "."
+      xrange = Range.new(* [a.x, b.x].sort)
+      next if xrange.to_a.shuffle.any? do |x|
+        !inside?(Point.new(x, a.y)) || !inside?(Point.new(x, b.y))
+      end
+
+      yrange = Range.new(* [a.y, b.y].sort)
+      next if yrange.to_a.shuffle.any? do |y|
+        !inside?(Point.new(a.x, y)) || !inside?(Point.new(b.x, y))
+      end
+
+      puts
+      return area
+    end
   end
 
   def dump
@@ -231,34 +239,10 @@ class Floor < OrthogonalPolygon
   end
 end
 
-MUTATIONS = [
-  ->(p) { Point.new(p.x, p.y) },
-  ->(p) { Point.new(-p.x, p.y) },
-  ->(p) { Point.new(p.x, -p.y) },
-  ->(p) { Point.new(-p.x, -p.y) },
-  ->(p) { Point.new(p.y, p.x) },
-  ->(p) { Point.new(-p.y, p.x) },
-  ->(p) { Point.new(p.y, -p.x) },
-  ->(p) { Point.new(-p.y, -p.x) },
-].freeze
-
-def mutated_floors(points)
-  MUTATIONS.map do |m|
-    ps = points.map { |p| m.call(p) }
-    Floor.new(ps)
-  end
-end
-
 if $PROGRAM_NAME == __FILE__
   ps = Floor.points_from_file(ARGV[0] || "input.txt")
   fl = Floor.new(ps)
   puts "Maximal red rectangle: #{fl.max_red_area}"
 
   puts "Maximal red rectangle within green area: #{fl.max_red_area_within_green}"
-  exit
-
-  mutated_floors(ps).each do |f|
-    f.dump if ARGV[0] == "sample.txt"
-    puts "Maximal red rectangle within green area: #{f.max_red_area_within_green}"
-  end
 end
