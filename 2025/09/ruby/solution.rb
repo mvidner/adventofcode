@@ -29,12 +29,17 @@ class OrthogonalPolygon
   # sorted by x
   attr_reader :vertical_edges
 
-  def self.from_file(filename)
+  def self.points_from_file(filename)
     text = File.read(filename)
     points = text.lines.map do |line|
       x, y = line.split(",").map(&:to_i)
       Point.new(x, y)
     end
+    points
+  end
+
+  def self.from_file(filename)
+    points = points_from_file(filename)
     new(points)
   end
 
@@ -105,6 +110,15 @@ class OrthogonalPolygon
     puts "  #{inside ? 'IN ' : 'OUT'} #{point.inspect}" if $DEBUG
     inside
   end
+
+  def classify(point)
+    i = inside?(point)
+    return " " if i.nil?
+    return "." if i == false
+    return "@" if i == true
+
+    i.to_s[0]
+  end
 end
 
 class Floor < OrthogonalPolygon
@@ -142,11 +156,22 @@ class Floor < OrthogonalPolygon
 
     max
   end
+
+  def dump
+    (0..8).each do |y|
+      (0..13).each do |x|
+        print classify(Point.new(x, y))
+      end
+      puts
+    end
+  end
 end
 
 if $PROGRAM_NAME == __FILE__
   f = Floor.from_file(ARGV[0] || "input.txt")
 
   puts "Maximal red rectangle: #{f.max_red_area}"
+
+  f.dump if ARGV[0] == "sample.txt"
   puts "Maximal red rectangle within green area: #{f.max_red_area_within_green}"
 end
