@@ -55,13 +55,37 @@ class OrthogonalPolygon
     end
 
     @vertical_edges.sort_by!(&:x)
+    pp self if $DEBUG
   end
 
   # corners and border does count as inside
   def inside?(point)
+    x, y = point.x, point.y
+
     # Cast a ray from `point` to the left
     # and count the times it intersects the vertical edges
-    candidates = @vertical_edges.find_all { |e| e.y_range.cover?(point.y) }
+    candidates = @vertical_edges.find_all { |e| e.y_range.cover?(y) }
+
+    # prune the edges that merge with respect to ray casting
+    mcandidates = []
+    candidates.each_with_index do |e, i|
+      result = if i + 1 < candidates.size
+        e2 = candidates[i + 1]
+        r1 = e.y_range
+        r2 = e2.y_range
+        if (y == r1.begin && y == r2.end) || (y == r2.begin && y == r1.end)
+          puts "  merging #{e.inspect} with #{e2.inspect}" if $DEBUG
+          nil
+        else
+          e
+        end
+      else
+        e
+      end
+
+      mcandidates << result unless result.nil?
+    end
+    candidates = mcandidates
 
     # Array#bsearch and Array#bsearch_index note:
     # In find-minimum mode which we use,
@@ -74,7 +98,9 @@ class OrthogonalPolygon
     return false if goei.nil?
 
     equal = candidates[goei].x == point.x
-    goei.odd? || equal
+    inside = goei.odd? || equal
+    puts "  #{inside ? 'IN ' : 'OUT'} #{point.inspect}" if $DEBUG
+    inside
   end
 end
 
@@ -101,10 +127,12 @@ class Floor < OrthogonalPolygon
       @points.each do |b|
         next if a >= b
 
+        puts "Points: #{[a, b].inspect}" if $DEBUG
         corners = a.rectangle_corners(b)
         next if corners.any? { |p| !inside?(p) }
 
         area = a.rectangle_area(b)
+        puts " inside, area is #{area}" if $DEBUG
         max = area if max < area
       end
     end
