@@ -158,8 +158,11 @@ class Floor < OrthogonalPolygon
   end
 
   def dump
-    (0..8).each do |y|
-      (0..13).each do |x|
+    xmin, xmax = @points.map(&:x).minmax
+    ymin, ymax = @points.map(&:y).minmax
+
+    (ymin-1..ymax+1).each do |y|
+      (xmin-1..xmax+1).each do |x|
         print classify(Point.new(x, y))
       end
       puts
@@ -172,6 +175,21 @@ if $PROGRAM_NAME == __FILE__
 
   puts "Maximal red rectangle: #{f.max_red_area}"
 
-  f.dump if ARGV[0] == "sample.txt"
+  if ARGV[0] == "sample.txt"
+    ps = Floor.points_from_file(ARGV[0])
+    f.dump
+
+    f2 = Floor.new(ps.map { |p| Point.new(p.y, p.x) })
+    puts "Transposed"
+    f2.dump
+
+    f4 = Floor.new(ps.map { |p| Point.new(-p.x, -p.y) })
+    puts "Mirrored"
+    f4.dump
+
+    f3 = Floor.new(ps.map { |p| Point.new(-p.y, -p.x) })
+    puts "Mirrored transposed"
+    f3.dump
+  end
   puts "Maximal red rectangle within green area: #{f.max_red_area_within_green}"
 end
