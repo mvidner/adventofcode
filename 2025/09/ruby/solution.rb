@@ -186,13 +186,24 @@ class Floor < OrthogonalPolygon
   def max_red_area_within_green
     max = 0
 
-    @points.each do |a|
+    @points.each_with_index do |a, ai|
+      puts ai
       @points.each do |b|
         next if a >= b
 
         puts "Points: #{[a, b].inspect}" if $DEBUG
         corners = a.rectangle_corners(b)
         next if corners.any? { |p| !inside?(p) }
+
+        xrange = Range.new(* [a.x, b.x].sort)
+        next if xrange.to_a.shuffle.any? do |x|
+          !inside?(Point.new(x, a.y)) || !inside?(Point.new(x, b.y))
+        end
+
+        yrange = Range.new(* [a.y, b.y].sort)
+        next if yrange.to_a.shuffle.any? do |y|
+          !inside?(Point.new(a.x, y)) || !inside?(Point.new(b.x, y))
+        end
 
         area = a.rectangle_area(b)
         puts " inside, area is #{area}" if $DEBUG
@@ -242,6 +253,9 @@ if $PROGRAM_NAME == __FILE__
   ps = Floor.points_from_file(ARGV[0] || "input.txt")
   fl = Floor.new(ps)
   puts "Maximal red rectangle: #{fl.max_red_area}"
+
+  puts "Maximal red rectangle within green area: #{fl.max_red_area_within_green}"
+  exit
 
   mutated_floors(ps).each do |f|
     f.dump if ARGV[0] == "sample.txt"
