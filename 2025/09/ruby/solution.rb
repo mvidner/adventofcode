@@ -54,60 +54,106 @@ class OrthogonalPolygon
       if a.x == b.x
         y_range = Range.new(* [a.y, b.y].sort) # inclusive range
         @vertical_edges << VerticalEdge.new(a.x, y_range)
+        # Does not happen in sample or input:
+        # puts :TINY if y_range.size == 1
       else
         raise "Edge not orthogonal: #{a.inspect}--#{b.inspect}" unless a.y == b.y
       end
     end
 
     @vertical_edges.sort_by!(&:x)
+    # TODO: what if the polygon overlaps itself?!
     pp self if $DEBUG
+  end
+
+  # inclusive range
+  def point_at_range(p, r)
+    if p == r.begin
+      if p == r.end
+        :both
+      else
+        :begin
+      end
+    elsif p == r.end
+      :end
+    else
+      # r.cover?(p)
+      # our ranges are only the covering ones
+      # true
+      nil
+    end
   end
 
   # corners and border does count as inside
   def inside?(point)
+    @inside_cache ||= {}
+    return @inside_cache[point] if @inside_cache.has_key?(point)
+
     x, y = point.x, point.y
 
     # Cast a ray from `point` to the left
     # and count the times it intersects the vertical edges
     y_intersecting = @vertical_edges.find_all { |e| e.y_range.cover?(y) }
 
-    # Array#bsearch and Array#bsearch_index note:
-    # In find-minimum mode which we use,
-    # it expects that theblock returns
-    # false for smaller indices, and
-    # true for indices greater or equal than the sought one
+    # the ray starts at -Inf, outside the polygon
+    v_edges_seen = 0
+    # the point lies AT a vertical edge; same x coord
+    last_at_v_edge = false
 
-    # greater_or_equal_edge_index
-    goei = y_intersecting.bsearch_index { |e| e.x >= point.x }
-    return false if goei.nil?
+    # nil
+    # but if the ray is going along a horizontal edge:
+    # :begin, :end - having entered it at the begin/end of a vertical edge
+    # :both - the vertical edge is just a single tile with begin == end
+    at_h_edge = nil
 
-    to_the_left = y_intersecting[0..goei]
-    to_the_left.pop if to_the_left.last.x > x
-
-    # prune the edges that merge with respect to ray casting
-    mcandidates = []
-    to_the_left.each_with_index do |e, i|
-      result = if i + 1 < to_the_left.size
-        e2 = to_the_left[i + 1]
-        r1 = e.y_range
-        r2 = e2.y_range
-        if (y == r1.begin && y == r2.end) || (y == r2.begin && y == r1.end)
-          puts "  merging #{e.inspect} with #{e2.inspect}" if $DEBUG
-          nil
-        else
-          e
-        end
+    y_intersecting.each do |e|
+      if e.x > x
+        # the ray has flown past the target point
+        inside = last_at_v_edge || v_edges_seen.odd? || !!at_h_edge
+        puts "  #{inside ? 'IN ' : 'OUT'} #{point.inspect}" if $DEBUG
+        @inside_cache[point] = inside
+        return inside
       else
-        e
+        v_edges_seen += 1
+        last_at_v_edge = e.x == x
+
+        y_range = e.y_range
+        par = point_at_range(y, y_range)
+        case par
+        when true, false, nil
+          # clean crossing of an edge
+          at_h_edge = nil
+        when :begin
+          case at_h_edge
+          when nil
+            at_h_edge = :begin
+          when :begin
+            at_h_edge = nil
+          when :end
+            v_edges_seen -= 1
+            at_h_edge = nil
+          end
+        when :end
+          case at_h_edge
+          when nil
+            at_h_edge = :end
+          when :end
+            at_h_edge = nil
+          when :begin
+            v_edges_seen -= 1
+            at_h_edge = nil
+          end
+        when :both
+          raise "should not happen in our data and I am lazy"
+        end
       end
-
-      mcandidates << result unless result.nil?
     end
-    candidates = mcandidates
 
-    equal = !candidates.empty? && candidates.last.x == x
-    inside = candidates.size.odd? || equal
+    raise unless v_edges_seen.even?
+    inside = last_at_v_edge
+
     puts "  #{inside ? 'IN ' : 'OUT'} #{point.inspect}" if $DEBUG
+    @inside_cache[point] = inside
     inside
   end
 
@@ -158,6 +204,9 @@ class Floor < OrthogonalPolygon
   end
 
   def dump
+    old_debug = $DEBUG
+    $DEBUG = nil
+
     xmin, xmax = @points.map(&:x).minmax
     ymin, ymax = @points.map(&:y).minmax
 
@@ -167,29 +216,35 @@ class Floor < OrthogonalPolygon
       end
       puts
     end
+    $DEBUG = old_debug
+  end
+end
+
+MUTATIONS = [
+  ->(p) { Point.new(p.x, p.y) },
+  ->(p) { Point.new(-p.x, p.y) },
+  ->(p) { Point.new(p.x, -p.y) },
+  ->(p) { Point.new(-p.x, -p.y) },
+  ->(p) { Point.new(p.y, p.x) },
+  ->(p) { Point.new(-p.y, p.x) },
+  ->(p) { Point.new(p.y, -p.x) },
+  ->(p) { Point.new(-p.y, -p.x) },
+].freeze
+
+def mutated_floors(points)
+  MUTATIONS.map do |m|
+    ps = points.map { |p| m.call(p) }
+    Floor.new(ps)
   end
 end
 
 if $PROGRAM_NAME == __FILE__
-  f = Floor.from_file(ARGV[0] || "input.txt")
+  ps = Floor.points_from_file(ARGV[0] || "input.txt")
+  fl = Floor.new(ps)
+  puts "Maximal red rectangle: #{fl.max_red_area}"
 
-  puts "Maximal red rectangle: #{f.max_red_area}"
-
-  if ARGV[0] == "sample.txt"
-    ps = Floor.points_from_file(ARGV[0])
-    f.dump
-
-    f2 = Floor.new(ps.map { |p| Point.new(p.y, p.x) })
-    puts "Transposed"
-    f2.dump
-
-    f4 = Floor.new(ps.map { |p| Point.new(-p.x, -p.y) })
-    puts "Mirrored"
-    f4.dump
-
-    f3 = Floor.new(ps.map { |p| Point.new(-p.y, -p.x) })
-    puts "Mirrored transposed"
-    f3.dump
+  mutated_floors(ps).each do |f|
+    f.dump if ARGV[0] == "sample.txt"
+    puts "Maximal red rectangle within green area: #{f.max_red_area_within_green}"
   end
-  puts "Maximal red rectangle within green area: #{f.max_red_area_within_green}"
 end
