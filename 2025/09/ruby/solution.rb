@@ -64,13 +64,26 @@ class OrthogonalPolygon
 
     # Cast a ray from `point` to the left
     # and count the times it intersects the vertical edges
-    candidates = @vertical_edges.find_all { |e| e.y_range.cover?(y) }
+    y_intersecting = @vertical_edges.find_all { |e| e.y_range.cover?(y) }
+
+    # Array#bsearch and Array#bsearch_index note:
+    # In find-minimum mode which we use,
+    # it expects that theblock returns
+    # false for smaller indices, and
+    # true for indices greater or equal than the sought one
+
+    # greater_or_equal_edge_index
+    goei = y_intersecting.bsearch_index { |e| e.x >= point.x }
+    return false if goei.nil?
+
+    to_the_left = y_intersecting[0..goei]
+    to_the_left.pop if to_the_left.last.x > x
 
     # prune the edges that merge with respect to ray casting
     mcandidates = []
-    candidates.each_with_index do |e, i|
-      result = if i + 1 < candidates.size
-        e2 = candidates[i + 1]
+    to_the_left.each_with_index do |e, i|
+      result = if i + 1 < to_the_left.size
+        e2 = to_the_left[i + 1]
         r1 = e.y_range
         r2 = e2.y_range
         if (y == r1.begin && y == r2.end) || (y == r2.begin && y == r1.end)
@@ -87,18 +100,8 @@ class OrthogonalPolygon
     end
     candidates = mcandidates
 
-    # Array#bsearch and Array#bsearch_index note:
-    # In find-minimum mode which we use,
-    # it expects that theblock returns
-    # false for smaller indices, and
-    # true for indices greater or equal than the sought one
-
-    # greater_or_equal_edge_index
-    goei = candidates.bsearch_index { |e| e.x >= point.x }
-    return false if goei.nil?
-
-    equal = candidates[goei].x == point.x
-    inside = goei.odd? || equal
+    equal = !candidates.empty? && candidates.last.x == x
+    inside = candidates.size.odd? || equal
     puts "  #{inside ? 'IN ' : 'OUT'} #{point.inspect}" if $DEBUG
     inside
   end
