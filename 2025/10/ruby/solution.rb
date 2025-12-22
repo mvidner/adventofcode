@@ -86,9 +86,10 @@ class Machine
   # @param graph implementing adjacent(Vertex) -> Enumerable[Vertex]
   # @param root [Vertex]
   # @param goal_p Proc(Vertex -> Boolean)
+  # @param prune_p Proc(Vertex -> Boolean) if true, don't add new vertex to queue
   # @return [(Vertex or nil, Integer, Hash{Vertex => Vertex})] a triple:
   #   goal vertex, path length (number of edges), reverse path hash
-  def breadth_first_search(graph, root, goal_p)
+  def breadth_first_search(graph, root, goal_p, prune_p)
     length = 0
     reverse_path = {}
 
@@ -102,6 +103,7 @@ class Machine
 
       if v == :next_layer
         length += 1
+        puts "Layers: #{length}, Q: #{queue.size}, Explored: #{explored.size}" # if 0 == length % 10
         queue.push(:next_layer)
         next
       end
@@ -112,7 +114,9 @@ class Machine
         next if explored.include?(w)
 
         explored << w
-        reverse_path[w] = v
+        next if prune_p.call(w)
+
+        # reverse_path[w] = v
         queue.push(w)
       end
     end
@@ -137,8 +141,12 @@ class Machine
   end
 
   def joltage_presses
+    pp self
     initial = joltages.map { |_j| 0 }
-    _goal, presses, _reverse_path = breadth_first_search(self, initial, ->(v) { v == joltages })
+    goal_p = ->(v) { v == joltages }
+    # prune if any one joltage exceeds limit
+    prune_p = ->(v) { v.zip(joltages).any? { |vv, jj| vv > jj } }
+    _goal, presses, _reverse_path = breadth_first_search(self, initial, goal_p, prune_p)
     presses
   end
 end
@@ -153,6 +161,13 @@ if $PROGRAM_NAME == __FILE__
   presses = ms.map(&:light_presses).sum
   puts "Fewest button presses: #{presses}"
 
-  presses = ms.map(&:joltage_presses).sum
+  ms.sort_by! { |m| 2 * m.joltages.size + m.buttons.size }
+  mi = 1
+  presses = ms.map do |m|
+    puts
+    puts "Machine ##{mi}"
+    mi += 1
+    m.joltage_presses
+  end.sum
   puts "Fewest joltage button presses: #{presses}"
 end
