@@ -42,10 +42,29 @@ class Graph
 
     next_vs.map { |next_v| count_paths(next_v, goal_v) }.sum
   end
+
+  def report_count_paths(start_v, goal_v)
+    n = count_paths(start_v, goal_v)
+    puts "Paths #{start_v} -> #{goal_v}: #{n}"
+    n
+  end
 end
 
 if $PROGRAM_NAME == __FILE__
   g = Graph.from_file(ARGV[0] || "input.txt")
   # g.dump_graphviz
-  puts "Paths: #{g.count_paths("you", "out")}"
+  g.report_count_paths("you", "out")
+
+  fd = g.report_count_paths("fft", "dac")
+  df = g.report_count_paths("dac", "fft")
+  if fd > 0
+    a = g.report_count_paths("svr", "fft")
+    m = fd
+    z = g.report_count_paths("dac", "out")
+  else
+    a = g.report_count_paths("svr", "dac")
+    m = df
+    z = g.report_count_paths("fft", "out")
+  end
+  puts "Total dac/fft paths: #{a * m * z}"
 end
