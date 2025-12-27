@@ -26,13 +26,17 @@ class Graph
 
   def dump_graphviz
     puts "digraph g {"
-    puts "  you[color=red];"
-    adjacent.each do |v, ws|
+    ["you", "out", "svr", "dac", "fft"].each { |v| graphviz_mark(v) }
+    @adjacent.each do |v, ws|
       ws.each do |w|
         puts "  #{v} -> #{w};"
       end
     end
     puts "}"
+  end
+
+  def graphviz_mark(name)
+    puts "  #{name}[color=red style=filled];"
   end
 
   def stats
@@ -175,8 +179,18 @@ class Graph
 end
 
 if $PROGRAM_NAME == __FILE__
+  if ARGV[0] == "--visualize"
+    ARGV.shift
+    visualize = true
+  end
+
   g = Graph.from_file(ARGV[0] || "input.txt")
-  # g.dump_graphviz
+
+  if visualize
+    g.dump_graphviz
+    exit
+  end
+
   g.report_count_paths("you", "out")
 
   fd = g.report_count_paths("fft", "dac")

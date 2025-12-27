@@ -1,5 +1,9 @@
 digraph g {
-  you[color=red];
+  you[color=red style=filled];
+  out[color=red style=filled];
+  svr[color=red style=filled];
+  dac[color=red style=filled];
+  fft[color=red style=filled];
   aay -> thz;
   aay -> crg;
   aay -> nse;

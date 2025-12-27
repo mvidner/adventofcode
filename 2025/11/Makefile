@@ -6,3 +6,9 @@ all: .ruby
 	test -f sample.txt && ruby ruby/solution.rb sample.txt
 	test -f sample2.txt && ruby ruby/solution.rb sample2.txt
 	ruby ruby/solution.rb
+
+%.dot: %.txt ruby/solution.rb
+	ruby/solution.rb --visualize $< > $@
+
+%.jpg: %.dot
+	dot -T jpg -o $@ $<
