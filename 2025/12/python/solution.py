@@ -51,8 +51,11 @@ class Shape(object):
         print(bitmap_str(self.pixels), "\n")
 
     def get(self, y, x) -> bool:
-        self_h, self_w = self.pixels.shape
+        self_h, self_w = self.h_w()
         return 0<=y<self_h and 0<=x<self_w and self.pixels[y, x]
+
+    def h_w(self):
+        return tuple(self.pixels.shape)
 
     def symmetries(self) -> list["Shape"]:
         id = self
@@ -137,7 +140,7 @@ class Packing(object):
         shape_header = re.compile(r"(\d+):")
 
         self.orig_shapes = []
-        for shape_text in paragraphs[:-2]:
+        for shape_text in paragraphs[:-1]:
             self.orig_shapes.append(Shape.from_text(shape_text))
 
         self.shapes = []
@@ -149,6 +152,44 @@ class Packing(object):
             self.regions.append(Region(line))
 
         # print(vars(self))
+
+    def stats(self):
+        shape_areas = []
+        shape_pixels = []
+        for s in self.orig_shapes:
+            h, w = s.h_w()
+            shape_areas.append(h * w)
+            px = np.count_nonzero(s.pixels)
+            shape_pixels.append(px)
+        print(shape_areas, shape_pixels)
+
+        wont_fit = 0
+        will_fit = 0
+        undecided = 0
+        for r in self.regions:
+            print(f"Region {r.w}x{r.h} = {r.w*r.h}")
+            print("  c:", r.counts, sum(r.counts))
+            areas = 0
+            pixels = 0
+            for i in range(len(r.counts)):
+                areas += r.counts[i] * shape_areas[i]
+                pixels += r.counts[i] * shape_pixels[i]
+            print("  a:", areas, "p:", pixels)
+            if pixels > r.w * r.h:
+                wont_fit += 1
+            else:
+                # reduced size
+                # 3 is the tile bbox size
+                rw = (r.w // 3) * 3
+                rh = (r.h // 3) * 3
+                if areas <= rw * rh:
+                    will_fit += 1
+                else:
+                    undecided += 1
+        print("Regions:", len(self.regions))
+        print("Will fit:", will_fit, "Won't fit:", wont_fit)
+        print("Undecided:", undecided)
+
 
     def demo(self):
         a = self.shapes[0][0]
@@ -171,4 +212,4 @@ if __name__ == '__main__':
     with open(filename) as f:
         text = f.read()
     packing = Packing(text)
-    packing.demo()
+    packing.stats()
